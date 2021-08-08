@@ -1,5 +1,6 @@
 import tkinter
 import os
+import _thread
 from tkinter import filedialog
 from pytube import YouTube, Playlist
 
@@ -70,6 +71,16 @@ class Interface:
             self.btn_audio.place_forget()
             self.btn_video.place_forget()
 
+    def block_interface(self):
+        self.youtube_link.configure(state=tkinter.DISABLED)
+        self.verify.configure(state=tkinter.DISABLED)
+        self.btn_return.configure(state=tkinter.DISABLED)
+
+    def unblock_interface(self):
+        self.youtube_link.configure(state=tkinter.NORMAL)
+        self.verify.configure(state=tkinter.ACTIVE)
+        self.btn_return.configure(state=tkinter.ACTIVE)
+
     def reset_interface(self):
         if self.select_type == 'audio':
             self.btn_audio_file.place_forget()
@@ -95,34 +106,52 @@ class Interface:
     def clear_entry(self):
         self.youtube_link.delete(0, 'end')
 
-    def download_audio(self):
+    def _thread_download_audio(self, *args):
         path = filedialog.askdirectory()
-        if self.youtube_type == 'video':
-            youtube = YouTube(self.youtube_link_variable.get()).streams.get_audio_only().download(path)
-            os.rename(f'{youtube.title()}', f'{youtube.title()}.mp3')
-        elif self.youtube_type == 'playlist':
-            playlist = Playlist(self.youtube_link_variable.get())
-            for url in playlist:
-                youtube = YouTube(url).streams.get_audio_only().download(path)
+        if path != '':
+            self.block_interface()
+            if self.youtube_type == 'video':
+                youtube = YouTube(self.youtube_link_variable.get()).streams.get_audio_only().download(path)
                 os.rename(f'{youtube.title()}', f'{youtube.title()}.mp3')
+            elif self.youtube_type == 'playlist':
+                playlist = Playlist(self.youtube_link_variable.get())
+                for url in playlist:
+                    youtube = YouTube(url).streams.get_audio_only().download(path)
+                    os.rename(f'{youtube.title()}', f'{youtube.title()}.mp3')
+            self.unblock_interface()
+
+    def _thread_download_highest_resolution(self, *args):
+        path = filedialog.askdirectory()
+        if path != '':
+            self.block_interface()
+            if self.youtube_type == 'video':
+                YouTube(self.youtube_link_variable.get()).streams.get_highest_resolution().download(path)
+            elif self.youtube_type == 'playlist':
+                playlist = Playlist(self.youtube_link_variable.get())
+                for url in playlist:
+                    YouTube(url).streams.get_highest_resolution().download(path)
+            self.unblock_interface()
+
+    def _thread_download_lowest_resolution(self, *args):
+        path = filedialog.askdirectory()
+        if path != '':
+            self.block_interface()
+            if self.youtube_type == 'video':
+                YouTube(self.youtube_link_variable.get()).streams.get_lowest_resolution().download(path)
+            elif self.youtube_type == 'playlist':
+                playlist = Playlist(self.youtube_link_variable.get())
+                for url in playlist:
+                    YouTube(url).streams.get_lowest_resolution().download(path)
+            self.unblock_interface()
+
+    def download_audio(self):
+        _thread.start_new_thread(self._thread_download_audio, (None, None))
 
     def download_highest_resolution(self):
-        path = filedialog.askdirectory()
-        if self.youtube_type == 'video':
-            YouTube(self.youtube_link_variable.get()).streams.get_highest_resolution().download(path)
-        elif self.youtube_type == 'playlist':
-            playlist = Playlist(self.youtube_link_variable.get())
-            for url in playlist:
-                YouTube(url).streams.get_highest_resolution().download(path)
+        _thread.start_new_thread(self.download_highest_resolution, (None, None))
 
     def download_lowest_resolution(self):
-        path = filedialog.askdirectory()
-        if self.youtube_type == 'video':
-            YouTube(self.youtube_link_variable.get()).streams.get_lowest_resolution().download(path)
-        elif self.youtube_type == 'playlist':
-            playlist = Playlist(self.youtube_link_variable.get())
-            for url in playlist:
-                YouTube(url).streams.get_lowest_resolution().download(path)
+        _thread.start_new_thread(self.download_lowest_resolution, (None, None))
 
     def _select_audio(self):
         self.select_type = 'audio'
