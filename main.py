@@ -1,5 +1,6 @@
 import tkinter
 from tkinter import filedialog
+from tkinter import messagebox
 from _thread import start_new_thread
 from os import rename
 from pytube import YouTube, Playlist
@@ -14,6 +15,7 @@ class Interface:
 
         self.select_type = ''
         self.youtube_type = ''
+        self.link = ''
         self.youtube_link_variable = tkinter.StringVar()
 
         self._interface()
@@ -22,10 +24,11 @@ class Interface:
         self.canvas_link = tkinter.Canvas(self.root, width=550, height=100)
         self.canvas_link.pack()
 
-        self.youtube_link = tkinter.Entry(self.root, font='Arial 15', textvariable=self.youtube_link_variable, width=35)
-        self.youtube_link.insert(0, 'Type here a youtube link')
-        self.youtube_link.bind('<Button-1>', lambda event: self.clear_entry())
-        self.canvas_link.create_window(200, 50, window=self.youtube_link)
+        self.entry_youtube_link = tkinter.Entry(self.root, font='Arial 15',
+                                                textvariable=self.youtube_link_variable, width=35)
+        self.entry_youtube_link.insert(0, 'Type here a youtube link')
+        self.entry_youtube_link.bind('<Button-1>', lambda event: self.clear_entry())
+        self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
         self.verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15', command=self._link_verify)
         self.canvas_link.create_window(470, 50, window=self.verify)
         self.label_title = tkinter.Label(self.root, font='Arial 10')
@@ -74,26 +77,33 @@ class Interface:
                     playlist = Playlist(self.youtube_link_variable.get())
                     title = f'Playlist: {playlist.title}'
                     self.youtube_type = 'playlist'
-                except:
+                except KeyError:
                     youtube = YouTube(self.youtube_link_variable.get())
                     title = f'Video:  {youtube.title}'
                     self.youtube_type = 'video'
             except Exception as erro:
-                print(erro)
+                messagebox.showerror('Error', erro)
+                self.canvas_file_type.place_forget()
+                if self.select_type != '':
+                    if self.select_type == 'audio':
+                        self.canvas_audio_download.place_forget()
+                    elif self.select_type == 'video':
+                        self.canvas_video_download.place_forget()
             else:
                 self.label_title['text'] = title
                 self.canvas_file_type.place(x=170, y=200)
+                self.link = self.youtube_link_variable.get()
         else:
             self.label_title['text'] = ''
             self.canvas_file_type.place_forget()
 
     def block_interface(self):
-        self.youtube_link.configure(state=tkinter.DISABLED)
+        self.entry_youtube_link.configure(state=tkinter.DISABLED)
         self.verify.configure(state=tkinter.DISABLED)
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def unblock_interface(self):
-        self.youtube_link.configure(state=tkinter.NORMAL)
+        self.entry_youtube_link.configure(state=tkinter.NORMAL)
         self.verify.configure(state=tkinter.ACTIVE)
         self.btn_return.configure(state=tkinter.ACTIVE)
 
@@ -116,72 +126,81 @@ class Interface:
         self.select_type = ''
 
     def clear_entry(self):
-        self.youtube_link.delete(0, 'end')
+        self.entry_youtube_link.delete(0, 'end')
 
     def _thread_download_audio(self, *args):
         path = filedialog.askdirectory()
         if path != '':
             self.block_interface()
+            self.canvas_audio_download.place_forget()
             self.canvas_download_status.place(x=20, y=140)
             if self.youtube_type == 'video':
-                self.label_download_status['text'] = 'Download Audio, please wait.'
-                youtube = YouTube(self.youtube_link_variable.get()).streams.get_audio_only().download(path)
+                self.label_download_status['text'] = 'Downloading Audio, please wait.'
+                youtube = YouTube(self.link).streams.get_audio_only().download(path)
                 rename(f'{youtube.title()}', f'{youtube.title()}.mp3')
             elif self.youtube_type == 'playlist':
-                playlist = Playlist(self.youtube_link_variable.get())
+                playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Download Playlist, please wait.'
+                    self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
                     youtube = YouTube(url).streams.get_audio_only().download(path)
                     rename(f'{youtube.title()}', f'{youtube.title()}.mp3')
             self.canvas_download_status.place_forget()
+            messagebox.showinfo('Info', 'Download Finished')
             self.unblock_interface()
+            self.canvas_audio_download.place(x=150, y=230)
 
     def _thread_download_highest_resolution(self, *args):
         path = filedialog.askdirectory()
         if path != '':
             self.block_interface()
+            self.canvas_video_download.place_forget()
             self.canvas_download_status.place(x=20, y=140)
             if self.youtube_type == 'video':
-                self.label_download_status['text'] = 'Download Video, please wait.'
-                YouTube(self.youtube_link_variable.get()).streams.get_highest_resolution().download(path)
+                self.label_download_status['text'] = 'Downloading Video, please wait.'
+                YouTube(self.link).streams.get_highest_resolution().download(path)
             elif self.youtube_type == 'playlist':
-                playlist = Playlist(self.youtube_link_variable.get())
+                playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Download Playlist, please wait.'
+                    self.label_download_status['text'] = 'Downloading Video Playlist, please wait.'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
                     YouTube(url).streams.get_highest_resolution().download(path)
             self.canvas_download_status.place_forget()
+            messagebox.showinfo('Info', 'Download Finished')
             self.unblock_interface()
+            self.canvas_video_download.place(x=150, y=200)
 
     def _thread_download_lowest_resolution(self, *args):
         path = filedialog.askdirectory()
         if path != '':
             self.block_interface()
+            self.canvas_video_download.place_forget()
             self.canvas_download_status.place(x=20, y=140)
             if self.youtube_type == 'video':
-                self.label_download_status['text'] = 'Download Video, please wait.'
-                YouTube(self.youtube_link_variable.get()).streams.get_lowest_resolution().download(path)
+                self.label_download_status['text'] = 'Downloading Video, please wait.'
+                YouTube(self.link).streams.get_lowest_resolution().download(path)
             elif self.youtube_type == 'playlist':
-                playlist = Playlist(self.youtube_link_variable.get())
+                playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Download Playlist, please wait.'
+                    self.label_download_status['text'] = 'Downloading Video Playlist, please wait.'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
                     YouTube(url).streams.get_lowest_resolution().download(path)
             self.canvas_download_status.place_forget()
+            messagebox.showinfo('Info', 'Download Finished')
             self.unblock_interface()
+            self.canvas_video_download.place(x=150, y=200)
 
     def download_audio(self):
         start_new_thread(self._thread_download_audio, (None, None))
