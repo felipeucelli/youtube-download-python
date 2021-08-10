@@ -4,6 +4,7 @@ import tkinter
 from tkinter import filedialog
 from tkinter import messagebox
 from _thread import start_new_thread
+from moviepy.editor import AudioFileClip
 from pytube import YouTube, Playlist
 
 
@@ -146,6 +147,12 @@ class Interface:
         python = sys.executable
         os.execl(python, python, *sys.argv)
 
+    @staticmethod
+    def mp4_to_mp3(mp4, mp3):
+        mp4_without_frames = AudioFileClip(mp4)
+        mp4_without_frames.write_audiofile(mp3)
+        mp4_without_frames.close()
+
     def _thread_download_audio(self, *args):
         _none = args
         save_path = filedialog.askdirectory()
@@ -157,8 +164,10 @@ class Interface:
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
                 youtube = YouTube(self.link).streams.get_audio_only().download(save_path)
                 try:
-                    os.rename(f'{youtube.title()}', f'{youtube.title().replace(".Mp4", "")}.mp3')
-                except FileExistsError:
+                    self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
+                    os.remove(youtube.title())
+                except Exception as erro:
+                    messagebox.showerror(erro)
                     os.remove(youtube.title())
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
@@ -171,8 +180,10 @@ class Interface:
                     self.label_download_name_file['text'] = youtube.title
                     youtube = YouTube(url).streams.get_audio_only().download(save_path)
                     try:
-                        os.rename(f'{youtube.title()}', f'{youtube.title().replace(".Mp4", "")}.mp3')
-                    except FileExistsError:
+                        self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
+                        os.remove(youtube.title())
+                    except Exception as erro:
+                        messagebox.showerror(erro)
                         os.remove(youtube.title())
             self.canvas_download_status.place_forget()
             messagebox.showinfo('Info', 'Download Finished')
