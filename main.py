@@ -4,7 +4,7 @@ import tkinter
 from tkinter import filedialog
 from tkinter import messagebox
 from _thread import start_new_thread
-from moviepy.editor import AudioFileClip
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 from pytube import YouTube, Playlist
 
 
