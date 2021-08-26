@@ -228,7 +228,7 @@ class Interface:
                     self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
                     os.remove(youtube.title())
                 except Exception as erro:
-                    messagebox.showerror(erro)
+                    messagebox.showerror('Error', erro)
                     os.remove(youtube.title())
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
@@ -244,7 +244,7 @@ class Interface:
                         self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
                         os.remove(youtube.title())
                     except Exception as erro:
-                        messagebox.showerror(erro)
+                        messagebox.showerror('Error', erro)
                         os.remove(youtube.title())
             self.canvas_download_status.place_forget()
             messagebox.showinfo('Info', 'Download Finished')
