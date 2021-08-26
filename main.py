@@ -82,6 +82,8 @@ class Interface:
         self.btn_stop = tkinter.Button(self.root, font='Arial 15', text='    Stop    ', fg='red',
                                        disabledforeground='red', command=self.stop_download)
         self.canvas_download_status.create_window(250, 250, window=self.btn_stop)
+        self.label_download_progress_bar = tkinter.Label(self.root, font='Arial 10', fg='green')
+        self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
 
         # Canvas setting for the return button for selecting file type (audio, video)
         self.canvas_return = tkinter.Canvas(self.root, width=50, height=50)
@@ -207,6 +209,21 @@ class Interface:
         mp4_without_frames.write_audiofile(mp3)
         mp4_without_frames.close()
 
+    def progress_callback(self, *args):
+        """
+        Shows a download progress bar
+        :param args: Takes 3 arguments(stream, chunk, bytes_remaining)
+        :return: Change the text of label_download_progress_bar
+        """
+        stream = args[0]
+        bytes_remaining = args[2]
+        file_size = stream.filesize
+        current = ((file_size - bytes_remaining) / file_size)
+        percent = '{0:.1f}'.format(current * 100)
+        progress = int(50 * current)
+        status = '█' * progress + ' ' * (50 - progress)
+        self.label_download_progress_bar['text'] = f'{status}| {percent}%\r'
+
     def _thread_download_audio(self, *args):
         """
         Download playlist audio files and videos
@@ -223,8 +240,11 @@ class Interface:
             # Check the file type (video, playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
-                youtube = YouTube(self.link).streams.get_audio_only().download(save_path)
+                self.label_download_progress_bar['text'] = f'█| 0%\r'
+                youtube = YouTube(self.link, on_progress_callback=self.progress_callback)\
+                    .streams.get_audio_only().download(save_path)
                 try:
+                    self.label_download_status['text'] = 'Converting Audio, please wait.'
                     self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
                     os.remove(youtube.title())
                 except Exception as erro:
@@ -237,17 +257,20 @@ class Interface:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
+                    self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    youtube = YouTube(url).streams.get_audio_only().download(save_path)
+                    youtube = YouTube(url, on_progress_callback=self.progress_callback)\
+                        .streams.get_audio_only().download(save_path)
                     try:
+                        self.label_download_status['text'] = 'Converting Audio, please wait.'
                         self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
                         os.remove(youtube.title())
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         os.remove(youtube.title())
-            self.canvas_download_status.place_forget()
             messagebox.showinfo('Info', 'Download Finished')
+            self.canvas_download_status.place_forget()
             self.unblock_interface()
             self.canvas_audio_download.place(x=150, y=230)
 
@@ -267,19 +290,23 @@ class Interface:
             # Check the file type (video, playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Video, please wait.'
-                YouTube(self.link).streams.get_highest_resolution().download(save_path)
+                self.label_download_progress_bar['text'] = f'█| 0%\r'
+                YouTube(self.link, on_progress_callback=self.progress_callback)\
+                    .streams.get_highest_resolution().download(save_path)
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Downloading Video Playlist, please wait.'
+                    self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
+                    self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    YouTube(url).streams.get_highest_resolution().download(save_path)
-            self.canvas_download_status.place_forget()
+                    YouTube(url, on_progress_callback=self.progress_callback)\
+                        .streams.get_highest_resolution().download(save_path)
             messagebox.showinfo('Info', 'Download Finished')
+            self.canvas_download_status.place_forget()
             self.unblock_interface()
             self.canvas_video_download.place(x=150, y=200)
 
@@ -299,7 +326,9 @@ class Interface:
             # Check the file type (video, playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Video, please wait.'
-                YouTube(self.link).streams.get_lowest_resolution().download(save_path)
+                self.label_download_progress_bar['text'] = f'█| 0%\r'
+                YouTube(self.link, on_progress_callback=self.progress_callback)\
+                    .streams.get_lowest_resolution().download(save_path)
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
                 count = -1
@@ -307,11 +336,13 @@ class Interface:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video Playlist, please wait.'
+                    self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    YouTube(url).streams.get_lowest_resolution().download(save_path)
-            self.canvas_download_status.place_forget()
+                    YouTube(url, on_progress_callback=self.progress_callback)\
+                        .streams.get_lowest_resolution().download(save_path)
             messagebox.showinfo('Info', 'Download Finished')
+            self.canvas_download_status.place_forget()
             self.unblock_interface()
             self.canvas_video_download.place(x=150, y=200)
 
