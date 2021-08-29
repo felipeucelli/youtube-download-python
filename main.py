@@ -6,16 +6,19 @@
 # Built-in
 import sys
 import os
+import re
 import tkinter
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter.ttk import Combobox
 from _thread import start_new_thread
+from time import sleep
 
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 from pytube import YouTube, Playlist
 
 
-class Interface:
+class Download:
     def __init__(self):
         self.root = tkinter.Tk()
         self.root.title('Youtube Download')
@@ -25,6 +28,7 @@ class Interface:
         self.select_type = ''
         self.youtube_type = ''
         self.link = ''
+        self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
 
         self._interface()
@@ -47,6 +51,11 @@ class Interface:
         self.label_title = tkinter.Label(self.root, font='Arial 10')
         self.canvas_link.create_window(280, 100, window=self.label_title)
 
+        # Animation canvas setup during link search
+        self.canvas_load_link = tkinter.Canvas(self.root, width=250, height=130)
+        self.label_load_link_verify = tkinter.Label(self.root, font='Arial 30 bold')
+        self.canvas_load_link.create_window(125, 65, window=self.label_load_link_verify)
+
         # Canvas configuration for file type selection (audio, video)
         self.canvas_file_type = tkinter.Canvas(self.root, width=200, height=130)
         self.btn_video = tkinter.Button(self.root, text='     Video     ', font='Arial 15',
@@ -56,20 +65,40 @@ class Interface:
                                         command=self._select_audio)
         self.canvas_file_type.create_window(105, 100, window=self.btn_audio)
 
+        # Canvas setting for selecting audio file download quality
+        self.canvas_audio_download = tkinter.Canvas(self.root, width=250, height=130)
+        self.label_combo_audio_select = tkinter.Label(self.root, font='Arial 10', text='Select a Quality: ')
+        self.canvas_audio_download.create_window(125, 10, window=self.label_combo_audio_select)
+        self.combo_quality_audio = Combobox(self.root, font='Arial 15', state='readonly')
+        self.canvas_audio_download.create_window(125, 40, window=self.combo_quality_audio)
+        self.btn_audio_download = tkinter.Button(self.root, text='Download', font='Arial 15',
+                                                 command=self.download_audio)
+        self.canvas_audio_download.create_window(125, 100, window=self.btn_audio_download)
+
         # Canvas setting for selecting video file download quality
         self.canvas_video_download = tkinter.Canvas(self.root, width=250, height=130)
-        self.btn_highest_resolution = tkinter.Button(self.root, text='Highest Resolution', font='Arial 15',
-                                                     command=self.download_highest_resolution)
-        self.canvas_video_download.create_window(125, 40, window=self.btn_highest_resolution)
-        self.btn_lowest_resolution = tkinter.Button(self.root, text='Lowest Resolution', font='Arial 15',
-                                                    command=self.download_lowest_resolution)
-        self.canvas_video_download.create_window(125, 100, window=self.btn_lowest_resolution)
+        self.label_combo_video_select = tkinter.Label(self.root, font='Arial 10', text='Select a Quality: ')
+        self.canvas_video_download.create_window(125, 10, window=self.label_combo_video_select)
+        self.combo_quality_video = Combobox(self.root, font='Arial 15', state='readonly')
+        self.canvas_video_download.create_window(125, 40, window=self.combo_quality_video)
+        self.btn_video_download = tkinter.Button(self.root, text='Download', font='Arial 15',
+                                                 command=self.download_video)
+        self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
 
-        # Audio file download button canvas setting
-        self.canvas_audio_download = tkinter.Canvas(self.root, width=250, height=100)
+        # Canvas setting for selecting video playlist file download quality
+        self.canvas_video_playlist_download = tkinter.Canvas(self.root, width=250, height=130)
+        self.btn_highest_resolution = tkinter.Button(self.root, text='Highest Resolution', font='Arial 15',
+                                                     command=lambda: self.download_video_playlist('highest_resolution'))
+        self.canvas_video_playlist_download.create_window(125, 40, window=self.btn_highest_resolution)
+        self.btn_lowest_resolution = tkinter.Button(self.root, text='Lowest Resolution', font='Arial 15',
+                                                    command=lambda: self.download_video_playlist('lowest_resolution'))
+        self.canvas_video_playlist_download.create_window(125, 100, window=self.btn_lowest_resolution)
+
+        # Canvas setting for selecting audio playlist file download
+        self.canvas_audio_playlist_download = tkinter.Canvas(self.root, width=250, height=100)
         self.btn_audio_file = tkinter.Button(self.root, text='    Download    ', font='Arial 15',
                                              command=self.download_audio)
-        self.canvas_audio_download.create_window(125, 50, window=self.btn_audio_file)
+        self.canvas_audio_playlist_download.create_window(125, 50, window=self.btn_audio_file)
 
         # Download Status Canvas Setting
         self.canvas_download_status = tkinter.Canvas(self.root, width=500, height=300)
@@ -92,14 +121,47 @@ class Interface:
         self.canvas_return.create_window(25, 25, window=self.btn_return)
         self.btn_return.configure(state=tkinter.DISABLED)
 
-    def _link_verify(self):
+    def _loading_link_verify(self, *args):
+        """
+        Generates an animation while checking the link
+        :param args: None
+        :return:
+        """
+        _none = args
+        while self._loading_link_verify_status:
+            time = 0.20
+            self.label_load_link_verify['text'] = '|'
+            sleep(time)
+            self.label_load_link_verify['text'] = '/'
+            sleep(time)
+            self.label_load_link_verify['text'] = '--'
+            sleep(time)
+            self.label_load_link_verify['text'] = '\\'
+            sleep(time)
+            self.label_load_link_verify['text'] = '|'
+            sleep(time)
+            self.label_load_link_verify['text'] = '/'
+            sleep(time)
+            self.label_load_link_verify['text'] = '--'
+            sleep(time)
+            self.label_load_link_verify['text'] = '\\'
+            sleep(time)
+        self.canvas_load_link.place_forget()
+
+    def _thread_link_verify(self, *args):
         """
         Check the link provided
         :return: returns the file type (audio, video) and whether it belongs to a playlist or not
         """
+        _none = args
         self.reset_interface()
         self.label_title['text'] = ''
+        self.select_type = ''
         if self.youtube_link_variable.get() != '' and self.youtube_link_variable.get() != 'Type here a youtube link':
+            self._loading_link_verify_status = True
+            self.canvas_load_link.place(x=150, y=200)
+            start_new_thread(self._loading_link_verify, (None, None))
+            self.block_interface()
             try:
                 try:
                     playlist = Playlist(self.youtube_link_variable.get())
@@ -107,9 +169,16 @@ class Interface:
                     self.youtube_type = 'playlist'
                 except KeyError:
                     youtube = YouTube(self.youtube_link_variable.get())
+                    stream = youtube.streams
+                    quality_video = self.get_video_quality(stream)
+                    quality_audio = self.get_audio_quality(stream)
+                    self.combo_quality_video['values'] = quality_video
+                    self.combo_quality_audio['values'] = quality_audio
                     title = f'Video:  {youtube.title}'
                     self.youtube_type = 'video'
             except Exception as erro:
+                self._loading_link_verify_status = False
+                self.unblock_interface()
                 messagebox.showerror('Error', erro)
                 self.canvas_file_type.place_forget()
                 if self.select_type != '':
@@ -118,12 +187,22 @@ class Interface:
                     elif self.select_type == 'video':
                         self.canvas_video_download.place_forget()
             else:
+                self._loading_link_verify_status = False
+                self.unblock_interface()
                 self.label_title['text'] = title
                 self.canvas_file_type.place(x=170, y=200)
                 self.link = self.youtube_link_variable.get()
         else:
+            self.select_type = ''
             self.label_title['text'] = ''
             self.canvas_file_type.place_forget()
+
+    def _link_verify(self):
+        """
+        Starts thread for link verification
+        :return:
+        """
+        start_new_thread(self._thread_link_verify, (None, None))
 
     def block_interface(self):
         """
@@ -141,7 +220,8 @@ class Interface:
         """
         self.entry_youtube_link.configure(state=tkinter.NORMAL)
         self.verify.configure(state=tkinter.ACTIVE)
-        self.btn_return.configure(state=tkinter.ACTIVE)
+        if self.select_type != '':
+            self.btn_return.configure(state=tkinter.ACTIVE)
 
     def reset_interface(self):
         """
@@ -149,9 +229,19 @@ class Interface:
         :return:
         """
         if self.select_type == 'audio':
-            self.canvas_audio_download.place_forget()
+            if self.youtube_type == 'video':
+                self.canvas_audio_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
-            self.canvas_video_download.place_forget()
+            if self.youtube_type == 'video':
+                self.canvas_video_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_video_playlist_download.place_forget()
+        elif self.select_type == '':
+            self.canvas_file_type.place_forget()
+        self.combo_quality_video.set('')
+        self.combo_quality_audio.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def return_page(self):
@@ -159,12 +249,21 @@ class Interface:
         Return to file type selection menu (audio, video)
         :return:
         """
-        self.canvas_file_type.place(x=170, y=200)
         if self.select_type == 'audio':
-            self.canvas_audio_download.place_forget()
+            if self.youtube_type == 'video':
+                self.canvas_audio_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
-            self.canvas_video_download.place_forget()
-
+            if self.youtube_type == 'video':
+                self.canvas_video_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_video_playlist_download.place_forget()
+        if self.combo_quality_audio.get() != '':
+            self.combo_quality_audio.set('')
+        if self.combo_quality_video.get() != '':
+            self.combo_quality_video.set('')
+        self.canvas_file_type.place(x=170, y=200)
         self.btn_return.configure(state=tkinter.DISABLED)
 
         self.select_type = ''
@@ -175,27 +274,6 @@ class Interface:
         :return:
         """
         self.entry_youtube_link.delete(0, 'end')
-
-    def stop_download(self):
-        """
-        Restart the application if the user requests
-        :return:
-        """
-        stop_download = messagebox.askokcancel('Cancel Download',
-                                               'Do you want to cancel the download, it may make it unusable')
-        if stop_download:
-            self.btn_stop['text'] = 'Stopping...'
-            self.btn_stop.configure(state=tkinter.DISABLED)
-            self.restart()
-
-    @staticmethod
-    def restart():
-        """
-        Retrieves the path of the executed program and restarts it
-        :return:
-        """
-        python = sys.executable
-        os.execl(python, python, *sys.argv)
 
     @staticmethod
     def mp4_to_mp3(mp4, mp3):
@@ -227,7 +305,7 @@ class Interface:
     def _thread_download_audio(self, *args):
         """
         Download playlist audio files and videos
-        :param args:
+        :param args: None
         :return:
         """
         _none = args
@@ -237,12 +315,13 @@ class Interface:
             self.canvas_audio_download.place_forget()
             self.canvas_download_status.place(x=20, y=140)
 
-            # Check the file type (video, playlist) and download
+            # Check the file type (video or playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
                 self.label_download_progress_bar['text'] = f'█| 0%\r'
-                youtube = YouTube(self.link, on_progress_callback=self.progress_callback)\
-                    .streams.get_audio_only().download(save_path)
+                youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
+                    .streams.filter(abr=str(self.combo_quality_audio.get()),
+                                    only_audio=True, file_extension='mp4')[0].download(save_path)
                 try:
                     self.label_download_status['text'] = 'Converting Audio, please wait.'
                     self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
@@ -260,7 +339,7 @@ class Interface:
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    youtube = YouTube(url, on_progress_callback=self.progress_callback)\
+                    youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                         .streams.get_audio_only().download(save_path)
                     try:
                         self.label_download_status['text'] = 'Converting Audio, please wait.'
@@ -274,10 +353,10 @@ class Interface:
             self.unblock_interface()
             self.canvas_audio_download.place(x=150, y=230)
 
-    def _thread_download_highest_resolution(self, *args):
+    def _thread_download_video(self, *args):
         """
-        Download playlist and video in high quality
-        :param args:
+        Download video
+        :param args: None
         :return:
         """
         _none = args
@@ -287,13 +366,33 @@ class Interface:
             self.canvas_video_download.place_forget()
             self.canvas_download_status.place(x=20, y=140)
 
-            # Check the file type (video, playlist) and download
+            # Check the file type (video) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Video, please wait.'
                 self.label_download_progress_bar['text'] = f'█| 0%\r'
-                YouTube(self.link, on_progress_callback=self.progress_callback)\
-                    .streams.get_highest_resolution().download(save_path)
-            elif self.youtube_type == 'playlist':
+                YouTube(self.link, on_progress_callback=self.progress_callback) \
+                    .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
+                                    progressive=True, file_extension='mp4')[0].download(save_path)
+            messagebox.showinfo('Info', 'Download Finished')
+            self.canvas_download_status.place_forget()
+            self.unblock_interface()
+            self.canvas_video_download.place(x=150, y=200)
+
+    def _thread_download_video_playlist(self, *args):
+        """
+        Download playlist
+        :param args: position 0 receives the chosen quality (highest_resolution or lowest_resolution)
+        :return:
+        """
+        quality = args[0]
+        save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
+        if save_path != '':
+            self.block_interface()
+            self.canvas_video_download.place_forget()
+            self.canvas_download_status.place(x=20, y=140)
+
+            # Check the video quality (highest_resolution or lowest_resolution) and download
+            if quality == 'lowest_resolution':
                 playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
@@ -303,44 +402,20 @@ class Interface:
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    YouTube(url, on_progress_callback=self.progress_callback)\
-                        .streams.get_highest_resolution().download(save_path)
-            messagebox.showinfo('Info', 'Download Finished')
-            self.canvas_download_status.place_forget()
-            self.unblock_interface()
-            self.canvas_video_download.place(x=150, y=200)
-
-    def _thread_download_lowest_resolution(self, *args):
-        """
-        Download playlist and video in low quality
-        :param args:
-        :return:
-        """
-        _none = args
-        save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
-        if save_path != '':
-            self.block_interface()
-            self.canvas_video_download.place_forget()
-            self.canvas_download_status.place(x=20, y=140)
-
-            # Check the file type (video, playlist) and download
-            if self.youtube_type == 'video':
-                self.label_download_status['text'] = 'Downloading Video, please wait.'
-                self.label_download_progress_bar['text'] = f'█| 0%\r'
-                YouTube(self.link, on_progress_callback=self.progress_callback)\
-                    .streams.get_lowest_resolution().download(save_path)
-            elif self.youtube_type == 'playlist':
+                    YouTube(url, on_progress_callback=self.progress_callback) \
+                        .streams.get_lowest_resolution().download(save_path)
+            elif quality == 'highest_resolution':
                 playlist = Playlist(self.link)
                 count = -1
                 for url in playlist:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Downloading Video Playlist, please wait.'
+                    self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
                     youtube = YouTube(url)
                     self.label_download_name_file['text'] = youtube.title
-                    YouTube(url, on_progress_callback=self.progress_callback)\
-                        .streams.get_lowest_resolution().download(save_path)
+                    YouTube(url, on_progress_callback=self.progress_callback) \
+                        .streams.get_highest_resolution().download(save_path)
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
@@ -351,21 +426,56 @@ class Interface:
         Starts the thread for downloading audio files
         :return:
         """
-        start_new_thread(self._thread_download_audio, (None, None))
+        if self.youtube_type == 'video':
+            if self.combo_quality_audio.get() == '':
+                messagebox.showwarning('Warning', 'Please Select a Quality')
+            else:
+                start_new_thread(self._thread_download_audio, (None, None))
+        elif self.youtube_type == 'playlist':
+            start_new_thread(self._thread_download_audio, (None, None))
 
-    def download_highest_resolution(self):
-        """
-        Start the thread for downloading high quality video files
-        :return:
-        """
-        start_new_thread(self._thread_download_highest_resolution, (None, None))
-
-    def download_lowest_resolution(self):
+    def download_video(self):
         """
         Starts the thread for downloading low quality video files
         :return:
         """
-        start_new_thread(self._thread_download_lowest_resolution, (None, None))
+        if self.combo_quality_video.get() == '':
+            messagebox.showwarning('Warning', 'Please Select a Quality')
+        else:
+            start_new_thread(self._thread_download_video, (None, None))
+
+    def download_video_playlist(self, quality):
+        """
+        Start the thread for downloading high quality video files
+        :return:
+        """
+        start_new_thread(self._thread_download_video_playlist, (quality, None))
+
+    @staticmethod
+    def get_audio_quality(stream):
+        """
+        Get the audio quality and return it in a list to be used in the audio combobox
+        :param stream: Stream of videos generated by pytube
+        :return: Returns a list of the audio quality of the video
+        """
+        yt = stream.filter(file_extension='mp4', only_audio=True)
+        quality_list = []
+        for c in yt:
+            quality_list.append(re.findall(r'\d{2,3}kbps', str(c)))
+        return quality_list
+
+    @staticmethod
+    def get_video_quality(stream):
+        """
+        Get the quality and fps of the video and return it in a list to be used in the video combobox
+        :param stream: Stream of videos generated by pytube
+        :return: Returns a list of the quality and fps of the videos
+        """
+        yt = stream.filter(file_extension='mp4', progressive=True)
+        quality_list = []
+        for c in yt:
+            quality_list.append(re.findall(r'\d{3}p|\d{2}fps', str(c)))
+        return quality_list
 
     def _select_audio(self):
         """
@@ -375,7 +485,10 @@ class Interface:
         self.select_type = 'audio'
         self.canvas_file_type.place_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
-        self.canvas_audio_download.place(x=150, y=230)
+        if self.youtube_type == 'video':
+            self.canvas_audio_download.place(x=150, y=200)
+        elif self.youtube_type == 'playlist':
+            self.canvas_audio_playlist_download.place(x=150, y=230)
 
     def _select_video(self):
         """
@@ -385,7 +498,31 @@ class Interface:
         self.select_type = 'video'
         self.canvas_file_type.place_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
-        self.canvas_video_download.place(x=150, y=200)
+        if self.youtube_type == 'video':
+            self.canvas_video_download.place(x=150, y=200)
+        elif self.youtube_type == 'playlist':
+            self.canvas_video_playlist_download.place(x=150, y=200)
+
+    @staticmethod
+    def restart():
+        """
+        Retrieves the path of the executed program and restarts it
+        :return:
+        """
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+
+    def stop_download(self):
+        """
+        Restart the application if the user requests
+        :return:
+        """
+        stop_download = messagebox.askokcancel('Cancel Download',
+                                               'Do you want to cancel the download, it may make it unusable')
+        if stop_download:
+            self.btn_stop['text'] = 'Stopping...'
+            self.btn_stop.configure(state=tkinter.DISABLED)
+            self.restart()
 
     def start(self):
         """
@@ -396,5 +533,5 @@ class Interface:
 
 
 if __name__ == '__main__':
-    main = Interface()
+    main = Download()
     main.start()
