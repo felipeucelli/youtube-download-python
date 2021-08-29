@@ -1,8 +1,11 @@
 # Youtube download in python
 
 ## Running the application
- `python3 main.py`
- 
+`python3 main.py`
+
+## Installing requirements
+`pip3 install -r requirements.txt`
+
 ## Prerequisites
 * [Python3](https://www.python.org)
 * [Pytube](https://pytube.io/en/latest/)
