@@ -39,7 +39,7 @@ class Download:
         :return:
         """
         # Canvas configuration for insertion and search of links
-        self.canvas_link = tkinter.Canvas(self.root, width=550, height=100)
+        self.canvas_link = tkinter.Canvas(self.root, width=550, height=150)
         self.canvas_link.pack()
         self.entry_youtube_link = tkinter.Entry(self.root, font='Arial 15',
                                                 textvariable=self.youtube_link_variable, width=35)
@@ -48,7 +48,7 @@ class Download:
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
         self.verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15', command=self._link_verify)
         self.canvas_link.create_window(470, 50, window=self.verify)
-        self.label_title = tkinter.Label(self.root, font='Arial 10')
+        self.label_title = tkinter.Message(self.root, font='Arial 10', width=400)
         self.canvas_link.create_window(280, 100, window=self.label_title)
 
         # Animation canvas setup during link search
@@ -165,7 +165,7 @@ class Download:
             try:
                 try:
                     playlist = Playlist(self.youtube_link_variable.get())
-                    title = f'Playlist: {playlist.title}'
+                    title = f'PLAYLIST: {playlist.title}'
                     self.youtube_type = 'playlist'
                 except KeyError:
                     youtube = YouTube(self.youtube_link_variable.get())
@@ -174,7 +174,7 @@ class Download:
                     quality_audio = self.get_audio_quality(stream)
                     self.combo_quality_video['values'] = quality_video
                     self.combo_quality_audio['values'] = quality_audio
-                    title = f'Video:  {youtube.title}'
+                    title = f'VIDEO: {youtube.title}'
                     self.youtube_type = 'video'
             except Exception as erro:
                 self._loading_link_verify_status = False
