@@ -46,10 +46,11 @@ class Download:
         self.entry_youtube_link.insert(0, 'Type here a youtube link')
         self.entry_youtube_link.bind('<Button-1>', lambda event: self.clear_entry())
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
-        self.verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15', command=self._link_verify)
-        self.canvas_link.create_window(470, 50, window=self.verify)
-        self.label_title = tkinter.Message(self.root, font='Arial 10', width=400)
-        self.canvas_link.create_window(280, 100, window=self.label_title)
+        self.btn_link_verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15',
+                                              command=self._link_verify)
+        self.canvas_link.create_window(470, 50, window=self.btn_link_verify)
+        self.message_youtube_title = tkinter.Message(self.root, font='Arial 10', width=400)
+        self.canvas_link.create_window(280, 100, window=self.message_youtube_title)
 
         # Animation canvas setup during link search
         self.canvas_load_link = tkinter.Canvas(self.root, width=250, height=130)
@@ -155,7 +156,7 @@ class Download:
         """
         _none = args
         self.reset_interface()
-        self.label_title['text'] = ''
+        self.message_youtube_title['text'] = ''
         self.select_type = ''
         if self.youtube_link_variable.get() != '' and self.youtube_link_variable.get() != 'Type here a youtube link':
             self._loading_link_verify_status = True
@@ -189,12 +190,12 @@ class Download:
             else:
                 self._loading_link_verify_status = False
                 self.unblock_interface()
-                self.label_title['text'] = title
+                self.message_youtube_title['text'] = title
                 self.canvas_file_type.place(x=170, y=200)
                 self.link = self.youtube_link_variable.get()
         else:
             self.select_type = ''
-            self.label_title['text'] = ''
+            self.message_youtube_title['text'] = ''
             self.canvas_file_type.place_forget()
 
     def _link_verify(self):
@@ -210,7 +211,7 @@ class Download:
         :return:
         """
         self.entry_youtube_link.configure(state=tkinter.DISABLED)
-        self.verify.configure(state=tkinter.DISABLED)
+        self.btn_link_verify.configure(state=tkinter.DISABLED)
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def unblock_interface(self):
@@ -219,7 +220,7 @@ class Download:
         :return:
         """
         self.entry_youtube_link.configure(state=tkinter.NORMAL)
-        self.verify.configure(state=tkinter.ACTIVE)
+        self.btn_link_verify.configure(state=tkinter.ACTIVE)
         if self.select_type != '':
             self.btn_return.configure(state=tkinter.ACTIVE)
 
