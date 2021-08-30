@@ -284,7 +284,7 @@ class Download:
         :return: Returns a file converted to mp3
         """
         mp4_without_frames = AudioFileClip(mp4)
-        mp4_without_frames.write_audiofile(mp3)
+        mp4_without_frames.write_audiofile(mp3, verbose=False)
         mp4_without_frames.close()
 
     def progress_callback(self, *args):
@@ -319,16 +319,21 @@ class Download:
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
                 self.label_download_progress_bar['text'] = f'█| 0%\r'
-                youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
-                    .streams.filter(abr=str(self.combo_quality_audio.get()),
-                                    only_audio=True, file_extension='mp4')[0].download(save_path)
                 try:
-                    self.label_download_status['text'] = 'Converting Audio, please wait.'
-                    self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
-                    os.remove(youtube.title())
+                    youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
+                        .streams.filter(abr=str(self.combo_quality_audio.get()),
+                                        only_audio=True, file_extension='mp4')[0].download(save_path)
+                    try:
+                        self.label_download_status['text'] = 'Converting Audio, please wait.'
+                        self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
+                        os.remove(youtube)
+                    except Exception as erro:
+                        messagebox.showerror('Error', erro)
+                        os.remove(youtube)
+                        self.restart()
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
-                    os.remove(youtube.title())
+                    self.restart()
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
                 count = -1
@@ -337,17 +342,22 @@ class Download:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
-                    youtube = YouTube(url)
-                    self.label_download_name_file['text'] = youtube.title
-                    youtube = YouTube(url, on_progress_callback=self.progress_callback) \
-                        .streams.get_audio_only().download(save_path)
                     try:
-                        self.label_download_status['text'] = 'Converting Audio, please wait.'
-                        self.mp4_to_mp3(str(youtube.title()), f'{youtube.title().replace(".Mp4", "")}.mp3')
-                        os.remove(youtube.title())
+                        youtube = YouTube(url)
+                        self.label_download_name_file['text'] = youtube.title
+                        youtube = YouTube(url, on_progress_callback=self.progress_callback) \
+                            .streams.get_audio_only().download(save_path)
+                        try:
+                            self.label_download_status['text'] = 'Converting Audio, please wait.'
+                            self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
+                            os.remove(youtube)
+                        except Exception as erro:
+                            messagebox.showerror('Error', erro)
+                            os.remove(youtube)
+                            self.restart()
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
-                        os.remove(youtube.title())
+                        self.restart()
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
@@ -370,9 +380,13 @@ class Download:
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Video, please wait.'
                 self.label_download_progress_bar['text'] = f'█| 0%\r'
-                YouTube(self.link, on_progress_callback=self.progress_callback) \
-                    .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
-                                    progressive=True, file_extension='mp4')[0].download(save_path)
+                try:
+                    YouTube(self.link, on_progress_callback=self.progress_callback) \
+                        .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
+                                        progressive=True, file_extension='mp4')[0].download(save_path)
+                except Exception as erro:
+                    messagebox.showerror('Error', erro)
+                    self.restart()
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
@@ -400,10 +414,12 @@ class Download:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
-                    youtube = YouTube(url)
-                    self.label_download_name_file['text'] = youtube.title
-                    YouTube(url, on_progress_callback=self.progress_callback) \
-                        .streams.get_lowest_resolution().download(save_path)
+                    try:
+                        youtube = YouTube(url, on_progress_callback=self.progress_callback)
+                        self.label_download_name_file['text'] = youtube.title
+                        youtube.streams.get_lowest_resolution().download(save_path)
+                    except Exception as erro:
+                        messagebox.showerror('Erro', erro)
             elif quality == 'highest_resolution':
                 playlist = Playlist(self.link)
                 count = -1
@@ -412,10 +428,12 @@ class Download:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
                     self.label_download_progress_bar['text'] = f'█| 0%\r'
-                    youtube = YouTube(url)
-                    self.label_download_name_file['text'] = youtube.title
-                    YouTube(url, on_progress_callback=self.progress_callback) \
-                        .streams.get_highest_resolution().download(save_path)
+                    try:
+                        youtube = YouTube(url, on_progress_callback=self.progress_callback)
+                        self.label_download_name_file['text'] = youtube.title
+                        youtube.streams.get_highest_resolution().download(save_path)
+                    except Exception as erro:
+                        messagebox.showerror('Error', erro)
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
@@ -428,7 +446,7 @@ class Download:
         """
         if self.youtube_type == 'video':
             if self.combo_quality_audio.get() == '':
-                messagebox.showwarning('Warning', 'Please Select a Quality')
+                messagebox.showerror('Error', 'Please Select a Quality')
             else:
                 start_new_thread(self._thread_download_audio, (None, None))
         elif self.youtube_type == 'playlist':
@@ -440,7 +458,7 @@ class Download:
         :return:
         """
         if self.combo_quality_video.get() == '':
-            messagebox.showwarning('Warning', 'Please Select a Quality')
+            messagebox.showerror('Error', 'Please Select a Quality')
         else:
             start_new_thread(self._thread_download_video, (None, None))
 
