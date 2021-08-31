@@ -362,7 +362,10 @@ class Download:
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
-            self.canvas_audio_download.place(x=150, y=230)
+            if self.youtube_type == 'video':
+                self.canvas_audio_download.place(x=150, y=230)
+            elif self.youtube_type == 'playlist':
+                self.canvas_video_playlist_download.place(x=150, y=230)
 
     def _thread_download_video(self, *args):
         """
@@ -438,7 +441,7 @@ class Download:
             messagebox.showinfo('Info', 'Download Finished')
             self.canvas_download_status.place_forget()
             self.unblock_interface()
-            self.canvas_video_download.place(x=150, y=200)
+            self.canvas_video_playlist_download.place(x=150, y=200)
 
     def download_audio(self):
         """
