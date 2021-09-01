@@ -15,7 +15,7 @@ from _thread import start_new_thread
 from time import sleep
 
 from moviepy.audio.io.AudioFileClip import AudioFileClip
-from pytube import YouTube, Playlist
+from pytube import YouTube, Playlist, exceptions
 
 
 class Download:
@@ -356,6 +356,8 @@ class Download:
                             messagebox.showerror('Error', erro)
                             os.remove(youtube)
                             self.restart()
+                    except exceptions.AgeRestrictedError:
+                        continue
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
@@ -422,6 +424,8 @@ class Download:
                         youtube = YouTube(url, on_progress_callback=self.progress_callback)
                         self.label_download_name_file['text'] = youtube.title
                         youtube.streams.get_lowest_resolution().download(save_path)
+                    except exceptions.AgeRestrictedError:
+                        continue
                     except Exception as erro:
                         messagebox.showerror('Erro', erro)
             elif quality == 'highest_resolution':
@@ -436,6 +440,8 @@ class Download:
                         youtube = YouTube(url, on_progress_callback=self.progress_callback)
                         self.label_download_name_file['text'] = youtube.title
                         youtube.streams.get_highest_resolution().download(save_path)
+                    except exceptions.AgeRestrictedError:
+                        continue
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
             messagebox.showinfo('Info', 'Download Finished')
