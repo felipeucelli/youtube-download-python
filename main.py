@@ -28,6 +28,7 @@ class Download:
         self.select_type = ''
         self.youtube_type = ''
         self.link = ''
+        self.stop_download_status = False
         self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
 
@@ -105,7 +106,7 @@ class Download:
         self.canvas_download_status = tkinter.Canvas(self.root, width=500, height=300)
         self.label_count_playlist = tkinter.Label(self.root, font='Arial 15', fg='green')
         self.canvas_download_status.create_window(250, 50, window=self.label_count_playlist)
-        self.label_download_name_file = tkinter.Label(self.root, font='Arial 10', fg='green')
+        self.label_download_name_file = tkinter.Message(self.root, font='Arial 10', fg='green', width=400)
         self.canvas_download_status.create_window(250, 100, window=self.label_download_name_file)
         self.label_download_status = tkinter.Label(self.root, font='Arial 15', fg='green')
         self.canvas_download_status.create_window(250, 150, window=self.label_download_status)
@@ -114,6 +115,8 @@ class Download:
         self.canvas_download_status.create_window(250, 250, window=self.btn_stop)
         self.label_download_progress_bar = tkinter.Label(self.root, font='Arial 10', fg='green')
         self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
+        self.btn_force_stop = tkinter.Button(self.root, font='Arial 10', text='Force Stop', fg='red',
+                                             disabledforeground='red', command=self.force_stop_download)
 
         # Canvas setting for the return button for selecting file type (audio, video)
         self.canvas_return = tkinter.Canvas(self.root, width=50, height=50)
@@ -135,7 +138,7 @@ class Download:
             sleep(time)
             self.label_load_link_verify['text'] = '/'
             sleep(time)
-            self.label_load_link_verify['text'] = '--'
+            self.label_load_link_verify['text'] = '-'
             sleep(time)
             self.label_load_link_verify['text'] = '\\'
             sleep(time)
@@ -143,7 +146,7 @@ class Download:
             sleep(time)
             self.label_load_link_verify['text'] = '/'
             sleep(time)
-            self.label_load_link_verify['text'] = '--'
+            self.label_load_link_verify['text'] = '-'
             sleep(time)
             self.label_load_link_verify['text'] = '\\'
             sleep(time)
@@ -303,6 +306,49 @@ class Download:
         status = '█' * progress + ' ' * (50 - progress)
         self.label_download_progress_bar['text'] = f'{status}| {percent}%\r'
 
+    def _start_download(self):
+        self.block_interface()
+        if self.select_type == 'audio':
+            if self.youtube_type == 'video':
+                self.canvas_audio_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_audio_playlist_download.place_forget()
+        elif self.select_type == 'video':
+            if self.youtube_type == 'video':
+                self.canvas_video_download.place_forget()
+            elif self.youtube_type == 'playlist':
+                self.canvas_video_playlist_download.place_forget()
+
+        self.canvas_download_status.place(x=20, y=140)
+
+    def _download_finished(self):
+        messagebox.showinfo('Info', 'Download Finished')
+        self.canvas_download_status.place_forget()
+        self.unblock_interface()
+
+        if self.select_type == 'audio':
+            if self.youtube_type == 'video':
+                self.canvas_audio_download.place(x=150, y=230)
+            elif self.youtube_type == 'playlist':
+                self.canvas_audio_playlist_download.place(x=150, y=230)
+
+        elif self.select_type == 'video':
+            if self.youtube_type == 'video':
+                self.canvas_video_download.place(x=150, y=200)
+            elif self.youtube_type == 'playlist':
+                self.canvas_video_playlist_download.place(x=150, y=200)
+
+        self.label_count_playlist['text'] = ''
+        self.label_download_name_file['text'] = ''
+        self.label_download_status['text'] = ''
+        self.label_download_progress_bar['text'] = ''
+
+        if self.stop_download_status:
+            self.btn_stop.configure(state=tkinter.ACTIVE)
+            self.btn_stop['text'] = '    Stop    '
+            self.stop_download_status = False
+            self.btn_force_stop.place_forget()
+
     def _thread_download_audio(self, *args):
         """
         Download playlist audio files and videos
@@ -312,10 +358,7 @@ class Download:
         _none = args
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
         if save_path != '':
-            self.block_interface()
-            self.canvas_audio_download.place_forget()
-            self.canvas_download_status.place(x=20, y=140)
-
+            self._start_download()
             # Check the file type (video or playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
@@ -361,13 +404,9 @@ class Download:
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
-            messagebox.showinfo('Info', 'Download Finished')
-            self.canvas_download_status.place_forget()
-            self.unblock_interface()
-            if self.youtube_type == 'video':
-                self.canvas_audio_download.place(x=150, y=230)
-            elif self.youtube_type == 'playlist':
-                self.canvas_video_playlist_download.place(x=150, y=230)
+                    if self.stop_download_status:
+                        break
+            self._download_finished()
 
     def _thread_download_video(self, *args):
         """
@@ -378,9 +417,7 @@ class Download:
         _none = args
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
         if save_path != '':
-            self.block_interface()
-            self.canvas_video_download.place_forget()
-            self.canvas_download_status.place(x=20, y=140)
+            self._start_download()
 
             # Check the file type (video) and download
             if self.youtube_type == 'video':
@@ -393,10 +430,7 @@ class Download:
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
-            messagebox.showinfo('Info', 'Download Finished')
-            self.canvas_download_status.place_forget()
-            self.unblock_interface()
-            self.canvas_video_download.place(x=150, y=200)
+            self._download_finished()
 
     def _thread_download_video_playlist(self, *args):
         """
@@ -407,9 +441,7 @@ class Download:
         quality = args[0]
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
         if save_path != '':
-            self.block_interface()
-            self.canvas_video_download.place_forget()
-            self.canvas_download_status.place(x=20, y=140)
+            self._start_download()
 
             # Check the video quality (highest_resolution or lowest_resolution) and download
             if quality == 'lowest_resolution':
@@ -428,6 +460,8 @@ class Download:
                         continue
                     except Exception as erro:
                         messagebox.showerror('Erro', erro)
+                    if self.stop_download_status:
+                        break
             elif quality == 'highest_resolution':
                 playlist = Playlist(self.link)
                 count = -1
@@ -444,10 +478,9 @@ class Download:
                         continue
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
-            messagebox.showinfo('Info', 'Download Finished')
-            self.canvas_download_status.place_forget()
-            self.unblock_interface()
-            self.canvas_video_playlist_download.place(x=150, y=200)
+                    if self.stop_download_status:
+                        break
+            self._download_finished()
 
     def download_audio(self):
         """
@@ -540,17 +573,24 @@ class Download:
         python = sys.executable
         os.execl(python, python, *sys.argv)
 
+    def force_stop_download(self):
+        stop_download = messagebox.askokcancel('Cancel Download',
+                                               'Do you want to cancel the download? it may make it unusable!')
+        if stop_download:
+            self.restart()
+
     def stop_download(self):
         """
         Restart the application if the user requests
         :return:
         """
         stop_download = messagebox.askokcancel('Cancel Download',
-                                               'Do you want to cancel the download, it may make it unusable')
+                                               'Do you want to cancel the download?')
         if stop_download:
             self.btn_stop['text'] = 'Stopping...'
             self.btn_stop.configure(state=tkinter.DISABLED)
-            self.restart()
+            self.stop_download_status = True
+            self.btn_force_stop.place(x=230, y=430)
 
     def start(self):
         """
