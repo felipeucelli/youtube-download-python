@@ -307,6 +307,10 @@ class Download:
         self.label_download_progress_bar['text'] = f'{status}| {percent}%\r'
 
     def _start_download(self):
+        """
+        Removes options canvas and added status download canvas
+        :return:
+        """
         self.block_interface()
         if self.select_type == 'audio':
             if self.youtube_type == 'video':
@@ -322,6 +326,10 @@ class Download:
         self.canvas_download_status.place(x=20, y=140)
 
     def _download_finished(self):
+        """
+        Show the options canvas after the download finishes
+        :return:
+        """
         messagebox.showinfo('Info', 'Download Finished')
         self.canvas_download_status.place_forget()
         self.unblock_interface()
@@ -574,6 +582,10 @@ class Download:
         os.execl(python, python, *sys.argv)
 
     def force_stop_download(self):
+        """
+        Force download cancellation
+        :return:
+        """
         stop_download = messagebox.askokcancel('Cancel Download',
                                                'Do you want to cancel the download? it may make it unusable!')
         if stop_download:
@@ -581,7 +593,7 @@ class Download:
 
     def stop_download(self):
         """
-        Restart the application if the user requests
+        Stop the next download
         :return:
         """
         stop_download = messagebox.askokcancel('Cancel Download',
