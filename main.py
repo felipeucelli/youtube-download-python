@@ -46,9 +46,11 @@ class Download:
                                                 textvariable=self.youtube_link_variable, width=35)
         self.entry_youtube_link.insert(0, 'Type here a youtube link')
         self.entry_youtube_link.bind('<Button-1>', lambda event: self.clear_entry())
+        self.entry_youtube_link.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
         self.btn_link_verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15',
                                               command=self._link_verify)
+        self.btn_link_verify.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(470, 50, window=self.btn_link_verify)
         self.message_youtube_title = tkinter.Message(self.root, font='Arial 10', width=400)
         self.canvas_link.create_window(280, 100, window=self.message_youtube_title)
@@ -62,9 +64,11 @@ class Download:
         self.canvas_file_type = tkinter.Canvas(self.root, width=200, height=130)
         self.btn_video = tkinter.Button(self.root, text='     Video     ', font='Arial 15',
                                         command=self._select_video)
+        self.btn_video.bind('<Return>', lambda event: self._select_video())
         self.canvas_file_type.create_window(105, 40, window=self.btn_video)
         self.btn_audio = tkinter.Button(self.root, text='     Audio     ', font='Arial 15',
                                         command=self._select_audio)
+        self.btn_audio.bind('<Return>', lambda event: self._select_audio())
         self.canvas_file_type.create_window(105, 100, window=self.btn_audio)
 
         # Canvas setting for selecting audio file download quality
@@ -75,6 +79,7 @@ class Download:
         self.canvas_audio_download.create_window(125, 40, window=self.combo_quality_audio)
         self.btn_audio_download = tkinter.Button(self.root, text='Download', font='Arial 15',
                                                  command=self.download_audio)
+        self.btn_audio_download.bind('<Return>', lambda event: self.download_audio())
         self.canvas_audio_download.create_window(125, 100, window=self.btn_audio_download)
 
         # Canvas setting for selecting video file download quality
@@ -85,21 +90,25 @@ class Download:
         self.canvas_video_download.create_window(125, 40, window=self.combo_quality_video)
         self.btn_video_download = tkinter.Button(self.root, text='Download', font='Arial 15',
                                                  command=self.download_video)
+        self.btn_video_download.bind('<Return>', lambda event: self.download_video())
         self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
 
         # Canvas setting for selecting video playlist file download quality
         self.canvas_video_playlist_download = tkinter.Canvas(self.root, width=250, height=130)
         self.btn_highest_resolution = tkinter.Button(self.root, text='Highest Resolution', font='Arial 15',
                                                      command=lambda: self.download_video_playlist('highest_resolution'))
+        self.btn_highest_resolution.bind('<Return>', lambda event: self.download_video_playlist('highest_resolution'))
         self.canvas_video_playlist_download.create_window(125, 40, window=self.btn_highest_resolution)
         self.btn_lowest_resolution = tkinter.Button(self.root, text='Lowest Resolution', font='Arial 15',
                                                     command=lambda: self.download_video_playlist('lowest_resolution'))
+        self.btn_lowest_resolution.bind('<Return>', lambda event: self.download_video_playlist('lowest_resolution'))
         self.canvas_video_playlist_download.create_window(125, 100, window=self.btn_lowest_resolution)
 
         # Canvas setting for selecting audio playlist file download
         self.canvas_audio_playlist_download = tkinter.Canvas(self.root, width=250, height=100)
         self.btn_audio_file = tkinter.Button(self.root, text='    Download    ', font='Arial 15',
                                              command=self.download_audio)
+        self.btn_audio_file.bind('<Return>', lambda event: self.download_audio())
         self.canvas_audio_playlist_download.create_window(125, 50, window=self.btn_audio_file)
 
         # Download Status Canvas Setting
@@ -112,16 +121,19 @@ class Download:
         self.canvas_download_status.create_window(250, 150, window=self.label_download_status)
         self.btn_stop = tkinter.Button(self.root, font='Arial 15', text='    Stop    ', fg='red',
                                        disabledforeground='red', command=self.stop_download)
+        self.btn_stop.bind('<Return>', lambda event: self.stop_download())
         self.canvas_download_status.create_window(250, 250, window=self.btn_stop)
         self.label_download_progress_bar = tkinter.Label(self.root, font='Arial 10', fg='green')
         self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
         self.btn_force_stop = tkinter.Button(self.root, font='Arial 10', text='Force Stop', fg='red',
                                              disabledforeground='red', command=self.force_stop_download)
+        self.btn_force_stop.bind('<Return>', lambda event: self.force_stop_download())
 
         # Canvas setting for the return button for selecting file type (audio, video)
         self.canvas_return = tkinter.Canvas(self.root, width=50, height=50)
         self.canvas_return.place(y=445, x=0)
         self.btn_return = tkinter.Button(self.root, text='<', font='Arial 15', borderwidth=0, command=self.return_page)
+        self.btn_return.bind('<Return>', lambda event: self.return_page())
         self.canvas_return.create_window(25, 25, window=self.btn_return)
         self.btn_return.configure(state=tkinter.DISABLED)
 
@@ -365,7 +377,7 @@ class Download:
         """
         _none = args
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
-        if save_path != '':
+        if save_path != '' and save_path != ():
             self._start_download()
             # Check the file type (video or playlist) and download
             if self.youtube_type == 'video':
@@ -424,7 +436,7 @@ class Download:
         """
         _none = args
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
-        if save_path != '':
+        if save_path != '' and save_path != ():
             self._start_download()
 
             # Check the file type (video) and download
@@ -448,7 +460,7 @@ class Download:
         """
         quality = args[0]
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
-        if save_path != '':
+        if save_path != '' and save_path != ():
             self._start_download()
 
             # Check the video quality (highest_resolution or lowest_resolution) and download
