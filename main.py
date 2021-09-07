@@ -300,7 +300,7 @@ class Download:
         :return: Returns a file converted to mp3
         """
         mp4_without_frames = AudioFileClip(mp4)
-        mp4_without_frames.write_audiofile(mp3, verbose=False)
+        mp4_without_frames.write_audiofile(mp3, verbose=False, logger=None)
         mp4_without_frames.close()
 
     def progress_callback(self, *args):
