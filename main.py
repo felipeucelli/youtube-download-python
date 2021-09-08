@@ -42,10 +42,11 @@ class Download:
         # Canvas configuration for insertion and search of links
         self.canvas_link = tkinter.Canvas(self.root, width=550, height=150)
         self.canvas_link.pack()
-        self.entry_youtube_link = tkinter.Entry(self.root, font='Arial 15',
+        self.entry_youtube_link = tkinter.Entry(self.root, font='Arial 15', fg='gray',
                                                 textvariable=self.youtube_link_variable, width=35)
         self.entry_youtube_link.insert(0, 'Type here a youtube link')
-        self.entry_youtube_link.bind('<Button-1>', lambda event: self.clear_entry())
+        self.entry_youtube_link.bind('<FocusIn>', lambda event: self.focus_in())
+        self.entry_youtube_link.bind('<FocusOut>', lambda event: self.focus_out())
         self.entry_youtube_link.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
         self.btn_link_verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15',
@@ -285,12 +286,22 @@ class Download:
 
         self.select_type = ''
 
-    def clear_entry(self):
+    def focus_in(self):
         """
-        Clears the initial message indicating where the link should be pasted
+        Clean the placeholder
         :return:
         """
         self.entry_youtube_link.delete(0, 'end')
+        self.entry_youtube_link['fg'] = 'black'
+
+    def focus_out(self):
+        """
+        Insert placeholder
+        :return:
+        """
+        if self.entry_youtube_link.get() == '':
+            self.entry_youtube_link.insert(0, 'Type here a youtube link')
+            self.entry_youtube_link['fg'] = 'gray'
 
     @staticmethod
     def mp4_to_mp3(mp4, mp3):
