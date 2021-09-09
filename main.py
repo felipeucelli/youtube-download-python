@@ -293,8 +293,9 @@ class Download:
         Clean the placeholder
         :return:
         """
-        self.entry_youtube_link.delete(0, 'end')
-        self.entry_youtube_link['fg'] = 'black'
+        if self.entry_youtube_link.get() == 'Type here a youtube link':
+            self.entry_youtube_link.delete(0, 'end')
+            self.entry_youtube_link['fg'] = 'black'
 
     def focus_out(self):
         """
