@@ -127,6 +127,8 @@ class Download:
         self.label_download_progress_bar = Progressbar(self.canvas_download_status, orient=tkinter.HORIZONTAL,
                                                        mode='determinate', length=400)
         self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
+        self.label_download_progress_bar_count = tkinter.Label(self.root, font='Arial 10', fg='green')
+        self.canvas_download_status.create_window(480, 200, window=self.label_download_progress_bar_count)
         self.btn_force_stop = tkinter.Button(self.root, font='Arial 10', text='Force Stop', fg='red',
                                              disabledforeground='red', command=self.force_stop_download)
         self.btn_force_stop.bind('<Return>', lambda event: self.force_stop_download())
@@ -326,6 +328,7 @@ class Download:
         file_size = stream.filesize
         current = ((file_size - bytes_remaining) / file_size)
         percent = '{0:.1f}'.format(current * 100)
+        self.label_download_progress_bar_count['text'] = f'{percent}%'
         self.label_download_progress_bar['value'] = percent
 
     def _start_download(self):
@@ -371,6 +374,7 @@ class Download:
         self.label_count_playlist['text'] = ''
         self.label_download_name_file['text'] = ''
         self.label_download_status['text'] = ''
+        self.label_download_progress_bar_count['text'] = ''
         self.label_download_progress_bar['value'] = 0
 
         if self.stop_download_status:
@@ -392,6 +396,7 @@ class Download:
             # Check the file type (video or playlist) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Audio, please wait.'
+                self.label_download_progress_bar_count['text'] = '0%'
                 self.label_download_progress_bar['value'] = 0
                 try:
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
@@ -415,6 +420,7 @@ class Download:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
+                    self.label_download_progress_bar_count['text'] = '0%'
                     self.label_download_progress_bar['value'] = 0
                     try:
                         youtube = YouTube(url)
@@ -452,6 +458,7 @@ class Download:
             # Check the file type (video) and download
             if self.youtube_type == 'video':
                 self.label_download_status['text'] = 'Downloading Video, please wait.'
+                self.label_download_progress_bar_count['text'] = '0%'
                 self.label_download_progress_bar['value'] = 0
                 try:
                     YouTube(self.link, on_progress_callback=self.progress_callback) \
@@ -481,6 +488,7 @@ class Download:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
+                    self.label_download_progress_bar_count['text'] = '0%'
                     self.label_download_progress_bar['value'] = 0
                     try:
                         youtube = YouTube(url, on_progress_callback=self.progress_callback)
@@ -499,6 +507,7 @@ class Download:
                     count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
+                    self.label_download_progress_bar_count['text'] = '0%'
                     self.label_download_progress_bar['value'] = 0
                     try:
                         youtube = YouTube(url, on_progress_callback=self.progress_callback)
