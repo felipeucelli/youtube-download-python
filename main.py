@@ -416,9 +416,8 @@ class Download:
                     self.restart()
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
-                count = -1
+                count = 0
                 for url in playlist:
-                    count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
                     self.label_download_progress_bar_count['text'] = '0%'
@@ -441,6 +440,8 @@ class Download:
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
+                    else:
+                        count += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
@@ -484,9 +485,8 @@ class Download:
             # Check the video quality (highest_resolution or lowest_resolution) and download
             if quality == 'lowest_resolution':
                 playlist = Playlist(self.link)
-                count = -1
+                count = 0
                 for url in playlist:
-                    count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
                     self.label_download_progress_bar_count['text'] = '0%'
@@ -499,13 +499,14 @@ class Download:
                         continue
                     except Exception as erro:
                         messagebox.showerror('Erro', erro)
+                    else:
+                        count += 1
                     if self.stop_download_status:
                         break
             elif quality == 'highest_resolution':
                 playlist = Playlist(self.link)
-                count = -1
+                count = 0
                 for url in playlist:
-                    count += 1
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Video From Playlist, please wait.'
                     self.label_download_progress_bar_count['text'] = '0%'
@@ -518,6 +519,8 @@ class Download:
                         continue
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
+                    else:
+                        count += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
