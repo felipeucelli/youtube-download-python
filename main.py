@@ -8,9 +8,8 @@ import sys
 import os
 import re
 import tkinter
-from tkinter import filedialog
-from tkinter import messagebox
-from tkinter.ttk import Combobox, Progressbar
+from tkinter import filedialog, messagebox
+from tkinter.ttk import Combobox, Progressbar, Notebook, Treeview
 from _thread import start_new_thread
 from time import sleep
 
@@ -23,7 +22,7 @@ class Download:
         self.root = tkinter.Tk()
         self.root.title('Youtube Download')
         self.root.resizable(width=False, height=False)
-        self.root.geometry('550x500')
+        self.root.geometry('550x530')
 
         self.select_type = ''
         self.youtube_type = ''
@@ -31,94 +30,105 @@ class Download:
         self.stop_download_status = False
         self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
+        self.runtime_files_count = 1
 
-        self._interface()
+        self.tabs = Notebook(self.root)
+        self.download_tab = tkinter.Canvas(self.tabs, highlightthickness=0)
+        self.list_tab = tkinter.Canvas(self.tabs, highlightthickness=0)
 
-    def _interface(self):
+        self.tabs.add(self.download_tab, text="Download")
+        self.tabs.add(self.list_tab, text="List")
+
+        self.tabs.place(x=0, y=0, height=530, width=550)
+
+        self._download_tab()
+        self._list_tab()
+
+    def _download_tab(self):
         """
         Interface canvas configuration
         :return:
         """
         # Canvas configuration for insertion and search of links
-        self.canvas_link = tkinter.Canvas(self.root, width=550, height=150)
+        self.canvas_link = tkinter.Canvas(self.download_tab, width=550, height=150)
         self.canvas_link.pack()
-        self.entry_youtube_link = tkinter.Entry(self.root, font='Arial 15', fg='gray',
+        self.entry_youtube_link = tkinter.Entry(self.download_tab, font='Arial 15', fg='gray',
                                                 textvariable=self.youtube_link_variable, width=35)
         self.entry_youtube_link.insert(0, 'Type here a youtube link')
         self.entry_youtube_link.bind('<FocusIn>', lambda event: self.focus_in())
         self.entry_youtube_link.bind('<FocusOut>', lambda event: self.focus_out())
         self.entry_youtube_link.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
-        self.btn_link_verify = tkinter.Button(self.root, text='    SEARCH    ', font='Arial 15',
+        self.btn_link_verify = tkinter.Button(self.download_tab, text='    SEARCH    ', font='Arial 15',
                                               command=self._link_verify)
         self.btn_link_verify.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(470, 50, window=self.btn_link_verify)
-        self.message_youtube_title = tkinter.Message(self.root, font='Arial 10', width=400)
+        self.message_youtube_title = tkinter.Message(self.download_tab, font='Arial 10', width=400)
         self.canvas_link.create_window(280, 100, window=self.message_youtube_title)
 
         # Animation canvas setup during link search
-        self.canvas_load_link = tkinter.Canvas(self.root, width=250, height=130)
-        self.label_load_link_verify = tkinter.Label(self.root, font='Arial 30 bold')
+        self.canvas_load_link = tkinter.Canvas(self.download_tab, width=250, height=130)
+        self.label_load_link_verify = tkinter.Label(self.download_tab, font='Arial 30 bold')
         self.canvas_load_link.create_window(125, 65, window=self.label_load_link_verify)
 
         # Canvas configuration for file type selection (audio, video)
-        self.canvas_file_type = tkinter.Canvas(self.root, width=200, height=130)
+        self.canvas_file_type = tkinter.Canvas(self.download_tab, width=200, height=130)
         self.btn_video = tkinter.Button(self.root, text='     Video     ', font='Arial 15',
                                         command=self._select_video)
         self.btn_video.bind('<Return>', lambda event: self._select_video())
         self.canvas_file_type.create_window(105, 40, window=self.btn_video)
-        self.btn_audio = tkinter.Button(self.root, text='     Audio     ', font='Arial 15',
+        self.btn_audio = tkinter.Button(self.download_tab, text='     Audio     ', font='Arial 15',
                                         command=self._select_audio)
         self.btn_audio.bind('<Return>', lambda event: self._select_audio())
         self.canvas_file_type.create_window(105, 100, window=self.btn_audio)
 
         # Canvas setting for selecting audio file download quality
-        self.canvas_audio_download = tkinter.Canvas(self.root, width=250, height=130)
-        self.label_combo_audio_select = tkinter.Label(self.root, font='Arial 10', text='Select a Quality: ')
+        self.canvas_audio_download = tkinter.Canvas(self.download_tab, width=250, height=130)
+        self.label_combo_audio_select = tkinter.Label(self.download_tab, font='Arial 10', text='Select a Quality: ')
         self.canvas_audio_download.create_window(125, 10, window=self.label_combo_audio_select)
-        self.combo_quality_audio = Combobox(self.root, font='Arial 15', state='readonly')
+        self.combo_quality_audio = Combobox(self.download_tab, font='Arial 15', state='readonly')
         self.canvas_audio_download.create_window(125, 40, window=self.combo_quality_audio)
-        self.btn_audio_download = tkinter.Button(self.root, text='Download', font='Arial 15',
+        self.btn_audio_download = tkinter.Button(self.download_tab, text='Download', font='Arial 15',
                                                  command=self.download_audio)
         self.btn_audio_download.bind('<Return>', lambda event: self.download_audio())
         self.canvas_audio_download.create_window(125, 100, window=self.btn_audio_download)
 
         # Canvas setting for selecting video file download quality
-        self.canvas_video_download = tkinter.Canvas(self.root, width=250, height=130)
-        self.label_combo_video_select = tkinter.Label(self.root, font='Arial 10', text='Select a Quality: ')
+        self.canvas_video_download = tkinter.Canvas(self.download_tab, width=250, height=130)
+        self.label_combo_video_select = tkinter.Label(self.download_tab, font='Arial 10', text='Select a Quality: ')
         self.canvas_video_download.create_window(125, 10, window=self.label_combo_video_select)
-        self.combo_quality_video = Combobox(self.root, font='Arial 15', state='readonly')
+        self.combo_quality_video = Combobox(self.download_tab, font='Arial 15', state='readonly')
         self.canvas_video_download.create_window(125, 40, window=self.combo_quality_video)
-        self.btn_video_download = tkinter.Button(self.root, text='Download', font='Arial 15',
+        self.btn_video_download = tkinter.Button(self.download_tab, text='Download', font='Arial 15',
                                                  command=self.download_video)
         self.btn_video_download.bind('<Return>', lambda event: self.download_video())
         self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
 
         # Canvas setting for selecting video playlist file download quality
-        self.canvas_video_playlist_download = tkinter.Canvas(self.root, width=250, height=130)
-        self.btn_highest_resolution = tkinter.Button(self.root, text='Highest Resolution', font='Arial 15',
+        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=250, height=130)
+        self.btn_highest_resolution = tkinter.Button(self.download_tab, text='Highest Resolution', font='Arial 15',
                                                      command=lambda: self.download_video_playlist('highest_resolution'))
         self.btn_highest_resolution.bind('<Return>', lambda event: self.download_video_playlist('highest_resolution'))
         self.canvas_video_playlist_download.create_window(125, 40, window=self.btn_highest_resolution)
-        self.btn_lowest_resolution = tkinter.Button(self.root, text='Lowest Resolution', font='Arial 15',
+        self.btn_lowest_resolution = tkinter.Button(self.download_tab, text='Lowest Resolution', font='Arial 15',
                                                     command=lambda: self.download_video_playlist('lowest_resolution'))
         self.btn_lowest_resolution.bind('<Return>', lambda event: self.download_video_playlist('lowest_resolution'))
         self.canvas_video_playlist_download.create_window(125, 100, window=self.btn_lowest_resolution)
 
         # Canvas setting for selecting audio playlist file download
-        self.canvas_audio_playlist_download = tkinter.Canvas(self.root, width=250, height=100)
-        self.btn_audio_file = tkinter.Button(self.root, text='    Download    ', font='Arial 15',
+        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=250, height=100)
+        self.btn_audio_file = tkinter.Button(self.download_tab, text='    Download    ', font='Arial 15',
                                              command=self.download_audio)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_audio())
         self.canvas_audio_playlist_download.create_window(125, 50, window=self.btn_audio_file)
 
         # Download Status Canvas Setting
-        self.canvas_download_status = tkinter.Canvas(self.root, width=500, height=300)
-        self.label_count_playlist = tkinter.Label(self.root, font='Arial 15', fg='green')
+        self.canvas_download_status = tkinter.Canvas(self.download_tab, width=500, height=300)
+        self.label_count_playlist = tkinter.Label(self.download_tab, font='Arial 15', fg='green')
         self.canvas_download_status.create_window(250, 50, window=self.label_count_playlist)
-        self.label_download_name_file = tkinter.Message(self.root, font='Arial 10', fg='green', width=400)
+        self.label_download_name_file = tkinter.Message(self.download_tab, font='Arial 10', fg='green', width=400)
         self.canvas_download_status.create_window(250, 100, window=self.label_download_name_file)
-        self.label_download_status = tkinter.Label(self.root, font='Arial 15', fg='green')
+        self.label_download_status = tkinter.Label(self.download_tab, font='Arial 15', fg='green')
         self.canvas_download_status.create_window(250, 150, window=self.label_download_status)
         self.btn_stop = tkinter.Button(self.root, font='Arial 15', text='    Stop    ', fg='red',
                                        disabledforeground='red', command=self.stop_download)
@@ -127,19 +137,50 @@ class Download:
         self.label_download_progress_bar = Progressbar(self.canvas_download_status, orient=tkinter.HORIZONTAL,
                                                        mode='determinate', length=400)
         self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
-        self.label_download_progress_bar_count = tkinter.Label(self.root, font='Arial 10', fg='green')
+        self.label_download_progress_bar_count = tkinter.Label(self.download_tab, font='Arial 10', fg='green')
         self.canvas_download_status.create_window(480, 200, window=self.label_download_progress_bar_count)
-        self.btn_force_stop = tkinter.Button(self.root, font='Arial 10', text='Force Stop', fg='red',
+        self.btn_force_stop = tkinter.Button(self.download_tab, font='Arial 10', text='Force Stop', fg='red',
                                              disabledforeground='red', command=self.force_stop_download)
         self.btn_force_stop.bind('<Return>', lambda event: self.force_stop_download())
 
         # Canvas setting for the return button for selecting file type (audio, video)
-        self.canvas_return = tkinter.Canvas(self.root, width=50, height=50)
+        self.canvas_return = tkinter.Canvas(self.download_tab, width=50, height=50)
         self.canvas_return.place(y=445, x=0)
-        self.btn_return = tkinter.Button(self.root, text='<', font='Arial 15', borderwidth=0, command=self.return_page)
+        self.btn_return = tkinter.Button(self.download_tab, text='<', font='Arial 15',
+                                         borderwidth=0, command=self.return_page)
         self.btn_return.bind('<Return>', lambda event: self.return_page())
         self.canvas_return.create_window(25, 25, window=self.btn_return)
         self.btn_return.configure(state=tkinter.DISABLED)
+
+    def _list_tab(self):
+        scrollbar_y = tkinter.Scrollbar(self.list_tab, orient='vertical')
+        scrollbar_y.pack(side="right", fill="y")
+
+        scrollbar_x = tkinter.Scrollbar(self.list_tab, orient='horizontal')
+        scrollbar_x.pack(side="bottom", fill="x")
+
+        self.tree_view = Treeview(self.list_tab, height=2,
+                                  column=('col1', 'col2', 'col3', 'col4'),
+                                  yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
+        self.tree_view.heading('#0', text='')
+        self.tree_view.heading('#1', text='N')
+        self.tree_view.heading('#2', text='Status')
+        self.tree_view.heading('#3', text='Title')
+        self.tree_view.heading('#4', text='Format')
+        self.tree_view.column('#0', width=0)
+        self.tree_view.column('#1', width=10)
+        self.tree_view.column('#2', width=50)
+        self.tree_view.column('#3', width=250)
+        self.tree_view.column('#4', width=50)
+        self.tree_view.place(x=0, y=0, height=487, width=529)
+
+        scrollbar_y.config(command=self.tree_view.yview)
+        scrollbar_x.config(command=self.tree_view.xview)
+
+    def _insert_to_list_tab(self, status: str, format_file: str):
+        self.tree_view.insert(parent='', index=tkinter.END,
+                              values=(f'{self.runtime_files_count}', f'{status}',
+                                      f'{self.label_download_name_file["text"]}', f'{format_file}'))
 
     def _loading_link_verify(self, *args):
         """
@@ -400,6 +441,8 @@ class Download:
                 self.label_download_progress_bar_count['text'] = '0%'
                 self.label_download_progress_bar['value'] = 0
                 try:
+                    youtube = YouTube(self.link)
+                    self.label_download_name_file['text'] = youtube.title
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(abr=str(self.combo_quality_audio.get()),
                                         only_audio=True, file_extension='mp4')[0].download(save_path)
@@ -411,9 +454,14 @@ class Download:
                         messagebox.showerror('Error', erro)
                         os.remove(youtube)
                         self.restart()
+                except exceptions.AgeRestrictedError:
+                    self._insert_to_list_tab('FAIL', 'AUDIO')
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
+                else:
+                    self._insert_to_list_tab('SUCCESS', 'AUDIO')
+                    self.runtime_files_count += 1
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
                 count = 0
@@ -436,12 +484,14 @@ class Download:
                             os.remove(youtube)
                             self.restart()
                     except exceptions.AgeRestrictedError:
-                        continue
+                        self._insert_to_list_tab('FAIL', 'AUDIO')
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
                     else:
+                        self._insert_to_list_tab('SUCCESS', 'AUDIO')
                         count += 1
+                        self.runtime_files_count += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
@@ -463,12 +513,19 @@ class Download:
                 self.label_download_progress_bar_count['text'] = '0%'
                 self.label_download_progress_bar['value'] = 0
                 try:
+                    youtube = YouTube(self.link)
+                    self.label_download_name_file['text'] = youtube.title
                     YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
                                         progressive=True, file_extension='mp4')[0].download(save_path)
+                except exceptions.AgeRestrictedError:
+                    self._insert_to_list_tab('FAIL', 'VIDEO')
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
+                else:
+                    self._insert_to_list_tab('SUCCESS', 'VIDEO')
+                    self.runtime_files_count += 1
             self._download_finished()
 
     def _thread_download_video_playlist(self, *args):
@@ -496,11 +553,14 @@ class Download:
                         self.label_download_name_file['text'] = youtube.title
                         youtube.streams.get_lowest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
-                        continue
+                        self._insert_to_list_tab('FAIL', 'VIDEO')
                     except Exception as erro:
-                        messagebox.showerror('Erro', erro)
+                        messagebox.showerror('Error', erro)
+                        self.restart()
                     else:
+                        self._insert_to_list_tab('SUCCESS', 'VIDEO')
                         count += 1
+                        self.runtime_files_count += 1
                     if self.stop_download_status:
                         break
             elif quality == 'highest_resolution':
@@ -516,11 +576,14 @@ class Download:
                         self.label_download_name_file['text'] = youtube.title
                         youtube.streams.get_highest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
-                        continue
+                        self._insert_to_list_tab('FAIL', 'VIDEO')
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
+                        self.restart()
                     else:
+                        self._insert_to_list_tab('SUCCESS', 'VIDEO')
                         count += 1
+                        self.runtime_files_count += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
