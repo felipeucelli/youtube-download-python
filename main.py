@@ -153,9 +153,15 @@ class Download:
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def _list_tab(self):
+        """
+        Creates a tree view that displays downloads made at runtime
+        :return:
+        """
+        # Create a vertical scrollbar for the tree view
         scrollbar_y = tkinter.Scrollbar(self.list_tab, orient='vertical')
         scrollbar_y.pack(side="right", fill="y")
 
+        # Create a horizontal scrollbar for the tree view
         scrollbar_x = tkinter.Scrollbar(self.list_tab, orient='horizontal')
         scrollbar_x.pack(side="bottom", fill="x")
 
@@ -178,15 +184,32 @@ class Download:
         self.tree_view.column(6, width=100, anchor=tkinter.CENTER)
         self.tree_view.place(x=0, y=0, height=487, width=529)
 
+        # Configure scroll bars
         scrollbar_y.config(command=self.tree_view.yview)
         scrollbar_x.config(command=self.tree_view.xview)
 
     def _insert_list_tab(self, status: str, format_file: str, quality: str, size: str):
+        """
+        Insert a new column in tree view
+        :param status: File status (DOWNLOADING, CONVERTING)
+        :param format_file: File format that will be downloaded (AUDIO, VIDEO)
+        :param quality: Quality of the file to be downloaded
+        :param size: Downloaded file size
+        :return:
+        """
         self.tree_view.insert(parent='', index=tkinter.END, iid=self.runtime_files_count,
                               values=(self.runtime_files_count, status, self.label_download_name_file["text"],
                                       format_file, quality, size))
 
     def _edit_list_tab(self, status: str, format_file: str, quality: str, size: str):
+        """
+        Edit the last column inserted in the tree view
+        :param status: File status (FAIL, SUCCESS)
+        :param format_file: File format that will be downloaded (AUDIO, VIDEO)
+        :param quality: Quality of the file to be downloaded
+        :param size: Downloaded file size
+        :return:
+        """
         self.tree_view.item(self.runtime_files_count, values=(self.runtime_files_count, status,
                                                               self.label_download_name_file["text"],
                                                               format_file, quality, size))
