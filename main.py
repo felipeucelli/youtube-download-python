@@ -160,18 +160,20 @@ class Download:
         scrollbar_x.pack(side="bottom", fill="x")
 
         self.tree_view = Treeview(self.list_tab, height=2,
-                                  column=('col1', 'col2', 'col3', 'col4'),
+                                  column=('col1', 'col2', 'col3', 'col4', 'col5'),
                                   yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
         self.tree_view.heading('#0', text='')
         self.tree_view.heading('#1', text='N')
         self.tree_view.heading('#2', text='Status')
         self.tree_view.heading('#3', text='Title')
         self.tree_view.heading('#4', text='Format')
+        self.tree_view.heading('#5', text='')
         self.tree_view.column('#0', width=0)
-        self.tree_view.column('#1', width=10)
-        self.tree_view.column('#2', width=50)
-        self.tree_view.column('#3', width=250)
-        self.tree_view.column('#4', width=50)
+        self.tree_view.column('#1', width=10, anchor=tkinter.CENTER)
+        self.tree_view.column('#2', width=50, anchor=tkinter.CENTER)
+        self.tree_view.column('#3', width=250, anchor=tkinter.CENTER)
+        self.tree_view.column('#4', width=50, anchor=tkinter.CENTER)
+        self.tree_view.column('#5', width=0)
         self.tree_view.place(x=0, y=0, height=487, width=529)
 
         scrollbar_y.config(command=self.tree_view.yview)
