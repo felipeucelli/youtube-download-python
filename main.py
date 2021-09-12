@@ -160,7 +160,7 @@ class Download:
         scrollbar_x.pack(side="bottom", fill="x")
 
         self.tree_view = Treeview(self.list_tab, height=2,
-                                  column=(1, 2, 3, 4, 5),
+                                  column=(1, 2, 3, 4, 5, 6),
                                   yscrollcommand=scrollbar_y.set, xscrollcommand=scrollbar_x.set)
         self.tree_view.heading('#0', text='')
         self.tree_view.heading(1, text='N', anchor=tkinter.CENTER)
@@ -168,21 +168,23 @@ class Download:
         self.tree_view.heading(3, text='Title', anchor=tkinter.CENTER)
         self.tree_view.heading(4, text='Format', anchor=tkinter.CENTER)
         self.tree_view.heading(5, text='Quality', anchor=tkinter.CENTER)
+        self.tree_view.heading(6, text='Size', anchor=tkinter.CENTER)
         self.tree_view.column('#0', width=0, stretch=tkinter.NO)
         self.tree_view.column(1, width=50, anchor=tkinter.CENTER)
         self.tree_view.column(2, width=100, anchor=tkinter.CENTER)
         self.tree_view.column(3, width=250, anchor=tkinter.CENTER)
         self.tree_view.column(4, width=100, anchor=tkinter.CENTER)
         self.tree_view.column(5, width=150, anchor=tkinter.CENTER)
+        self.tree_view.column(6, width=100, anchor=tkinter.CENTER)
         self.tree_view.place(x=0, y=0, height=487, width=529)
 
         scrollbar_y.config(command=self.tree_view.yview)
         scrollbar_x.config(command=self.tree_view.xview)
 
-    def _insert_to_list_tab(self, status: str, format_file: str, quality: str):
+    def _insert_to_list_tab(self, status: str, format_file: str, quality: str, size: str):
         self.tree_view.insert(parent='', index=tkinter.END,
                               values=(self.runtime_files_count, status, self.label_download_name_file["text"],
-                                      format_file, quality))
+                                      format_file, quality, size))
 
     def _loading_link_verify(self, *args):
         """
@@ -457,12 +459,14 @@ class Download:
                         os.remove(youtube)
                         self.restart()
                 except exceptions.AgeRestrictedError:
-                    self._insert_to_list_tab('FAIL', 'AUDIO', str(self.combo_quality_audio.get()))
+                    self._insert_to_list_tab('FAIL', 'AUDIO', str(self.combo_quality_audio.get()), '-')
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
                 else:
-                    self._insert_to_list_tab('SUCCESS', 'AUDIO', str(self.combo_quality_audio.get()))
+                    file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                    file_size = f'{file_size:.2f}MB'
+                    self._insert_to_list_tab('SUCCESS', 'AUDIO', str(self.combo_quality_audio.get()), file_size)
                     self.runtime_files_count += 1
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
@@ -486,12 +490,14 @@ class Download:
                             os.remove(youtube)
                             self.restart()
                     except exceptions.AgeRestrictedError:
-                        self._insert_to_list_tab('FAIL', 'AUDIO', 'Highest Resolution')
+                        self._insert_to_list_tab('FAIL', 'AUDIO', 'Highest Quality', '-')
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
                     else:
-                        self._insert_to_list_tab('SUCCESS', 'AUDIO', 'Highest Resolution')
+                        file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                        file_size = f'{file_size:.2f}MB'
+                        self._insert_to_list_tab('SUCCESS', 'AUDIO', 'Highest Quality', file_size)
                         count += 1
                         self.runtime_files_count += 1
                     if self.stop_download_status:
@@ -517,16 +523,18 @@ class Download:
                 try:
                     youtube = YouTube(self.link)
                     self.label_download_name_file['text'] = youtube.title
-                    YouTube(self.link, on_progress_callback=self.progress_callback) \
+                    youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
                                         progressive=True, file_extension='mp4')[0].download(save_path)
                 except exceptions.AgeRestrictedError:
-                    self._insert_to_list_tab('FAIL', 'VIDEO', str(self.combo_quality_video.get()))
+                    self._insert_to_list_tab('FAIL', 'VIDEO', str(self.combo_quality_video.get()), '-')
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
                 else:
-                    self._insert_to_list_tab('SUCCESS', 'VIDEO', str(self.combo_quality_video.get()))
+                    file_size = os.path.getsize(youtube) / 1048576
+                    file_size = f'{file_size:.2f}MB'
+                    self._insert_to_list_tab('SUCCESS', 'VIDEO', str(self.combo_quality_video.get()), file_size)
                     self.runtime_files_count += 1
             self._download_finished()
 
@@ -551,16 +559,19 @@ class Download:
                     self.label_download_progress_bar_count['text'] = '0%'
                     self.label_download_progress_bar['value'] = 0
                     try:
-                        youtube = YouTube(url, on_progress_callback=self.progress_callback)
+                        youtube = YouTube(url)
                         self.label_download_name_file['text'] = youtube.title
-                        youtube.streams.get_lowest_resolution().download(save_path)
+                        youtube = YouTube(url, on_progress_callback=self.progress_callback) \
+                            .streams.get_lowest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
-                        self._insert_to_list_tab('FAIL', 'VIDEO', 'Lowest Resolution')
+                        self._insert_to_list_tab('FAIL', 'VIDEO', 'Lowest Resolution', '-')
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
                     else:
-                        self._insert_to_list_tab('SUCCESS', 'VIDEO', 'Lowest Resolution')
+                        file_size = os.path.getsize(youtube) / 1048576
+                        file_size = f'{file_size:.2f}MB'
+                        self._insert_to_list_tab('SUCCESS', 'VIDEO', 'Lowest Resolution', file_size)
                         count += 1
                         self.runtime_files_count += 1
                     if self.stop_download_status:
@@ -574,16 +585,19 @@ class Download:
                     self.label_download_progress_bar_count['text'] = '0%'
                     self.label_download_progress_bar['value'] = 0
                     try:
-                        youtube = YouTube(url, on_progress_callback=self.progress_callback)
+                        youtube = YouTube(url)
                         self.label_download_name_file['text'] = youtube.title
-                        youtube.streams.get_highest_resolution().download(save_path)
+                        youtube = YouTube(url, on_progress_callback=self.progress_callback)\
+                            .streams.get_highest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
-                        self._insert_to_list_tab('FAIL', 'VIDEO', 'Highest Resolution')
+                        self._insert_to_list_tab('FAIL', 'VIDEO', 'Highest Resolution', '-')
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
                     else:
-                        self._insert_to_list_tab('SUCCESS', 'VIDEO', 'Highest Resolution')
+                        file_size = os.path.getsize(youtube) / 1048576
+                        file_size = f'{file_size:.2f}MB'
+                        self._insert_to_list_tab('SUCCESS', 'VIDEO', 'Highest Resolution', file_size)
                         count += 1
                         self.runtime_files_count += 1
                     if self.stop_download_status:
