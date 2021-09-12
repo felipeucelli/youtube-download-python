@@ -509,7 +509,7 @@ class Download:
                     try:
                         youtube = YouTube(url)
                         self.label_download_name_file['text'] = youtube.title
-                        self._insert_list_tab('DOWNLOADING', 'AUDIO', str(self.combo_quality_audio.get()), '-')
+                        self._insert_list_tab('DOWNLOADING', 'AUDIO', 'Highest Quality', '-')
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_audio_only().download(save_path)
                         try:
