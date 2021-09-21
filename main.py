@@ -485,13 +485,15 @@ class Download:
                     youtube = YouTube(self.link)
                     self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
                     self.label_download_name_file['text'] = youtube.title
-                    self._insert_list_tab('DOWNLOADING', 'AUDIO', self.duration, str(self.combo_quality_audio.get()))
+                    self._insert_list_tab('DOWNLOADING', 'AUDIO', self.duration,
+                                          str(self.combo_quality_audio.get()), '-', save_path)
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(abr=str(self.combo_quality_audio.get()),
                                         only_audio=True, file_extension='mp4')[0].download(save_path)
                     try:
                         self.label_download_status['text'] = 'Converting Audio, please wait.'
-                        self._edit_list_tab('CONVERTING', 'AUDIO', self.duration, str(self.combo_quality_audio.get()))
+                        self._edit_list_tab('CONVERTING', 'AUDIO', self.duration,
+                                            str(self.combo_quality_audio.get()), '-', save_path)
                         self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
                         os.remove(youtube)
                     except Exception as erro:
@@ -521,12 +523,12 @@ class Download:
                         youtube = YouTube(url)
                         self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
                         self.label_download_name_file['text'] = youtube.title
-                        self._insert_list_tab('DOWNLOADING', 'AUDIO', self.duration, 'Highest Quality')
+                        self._insert_list_tab('DOWNLOADING', 'AUDIO', self.duration, 'Highest Quality', '-', save_path)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_audio_only().download(save_path)
                         try:
                             self.label_download_status['text'] = 'Converting Audio, please wait.'
-                            self._edit_list_tab('CONVERTING', 'AUDIO', 'Highest Quality', '-')
+                            self._edit_list_tab('CONVERTING', 'AUDIO', 'Highest Quality', '-', save_path)
                             self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
                             os.remove(youtube)
                         except Exception as erro:
@@ -569,12 +571,14 @@ class Download:
                     youtube = YouTube(self.link)
                     self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
                     self.label_download_name_file['text'] = youtube.title
-                    self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration, str(self.combo_quality_video.get()))
+                    self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration,
+                                          str(self.combo_quality_video.get()), '-', save_path)
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
                                         progressive=True, file_extension='mp4')[0].download(save_path)
                 except exceptions.AgeRestrictedError:
-                    self._edit_list_tab('FAIL', 'VIDEO', self.duration, str(self.combo_quality_video.get()))
+                    self._edit_list_tab('FAIL', 'VIDEO', self.duration,
+                                        str(self.combo_quality_video.get()), '-', save_path)
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
@@ -610,11 +614,12 @@ class Download:
                         youtube = YouTube(url)
                         self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
                         self.label_download_name_file['text'] = youtube.title
-                        self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration, 'Lowest Resolution')
+                        self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration,
+                                              'Lowest Resolution', '-', save_path)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_lowest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
-                        self._edit_list_tab('FAIL', 'VIDEO', self.duration, 'Lowest Resolution')
+                        self._edit_list_tab('FAIL', 'VIDEO', self.duration, 'Lowest Resolution', '-', save_path)
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
@@ -639,7 +644,8 @@ class Download:
                         youtube = YouTube(url)
                         self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
                         self.label_download_name_file['text'] = youtube.title
-                        self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration, 'Highest Resolution')
+                        self._insert_list_tab('DOWNLOADING', 'VIDEO', self.duration,
+                                              'Highest Resolution', '-', save_path)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_highest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
