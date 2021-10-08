@@ -528,7 +528,7 @@ class Download:
                             .streams.get_audio_only().download(save_path)
                         try:
                             self.label_download_status['text'] = 'Converting Audio, please wait.'
-                            self._edit_list_tab('CONVERTING', 'AUDIO', 'Highest Quality', '-', save_path)
+                            self._edit_list_tab('CONVERTING', 'AUDIO', self.duration, 'Highest Quality', '-', save_path)
                             self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
                             os.remove(youtube)
                         except Exception as erro:
