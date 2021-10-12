@@ -44,6 +44,7 @@ class Download:
 
         self._download_tab()
         self._list_tab()
+        self._create_menu()
 
     def _download_tab(self):
         """
@@ -222,6 +223,34 @@ class Download:
         self.tree_view.item(self.runtime_files_count, values=(self.runtime_files_count, status,
                                                               self.label_download_name_file["text"],
                                                               format_file, duration, quality, size, path))
+
+    def _create_menu(self):
+        self.new_menu = tkinter.Menu(self.root)
+        self.option_menu = tkinter.Menu(self.new_menu, tearoff=0)
+        self.new_menu.add_cascade(label='Options', menu=self.option_menu)
+        self.option_menu.add_command(label='Export list',
+                                     command=lambda: self.export_list())
+        self.option_menu.add_separator()
+        self.option_menu.add_command(label='Exit', command=lambda: self.root.destroy())
+        self.root.config(menu=self.new_menu)
+
+    def export_list(self):
+        if self.runtime_files_count > 1:
+            print('ok')
+            path = filedialog.asksaveasfilename(defaultextension='txt',
+                                                initialfile='export_list',
+                                                filetypes=(('Text files', '*.txt'), ('All files', '*.*')))
+            if path != '' and path != ():
+                with open(path, 'w') as save:
+                    count = self.runtime_files_count
+                    for i in range(1, count):
+                        lista = self.tree_view.item(i, 'values')
+                        save.writelines(f'Title: {lista[2]}\n')
+                        save.writelines(f'Format: {lista[3]}\n')
+                        save.writelines(f'Duration: {lista[4]}\n')
+                        save.writelines(f'Quality: {lista[5]}\n')
+                        save.writelines(f'Size: {lista[6]}\n')
+                        save.writelines('------------------------------------------------------------\n')
 
     def _loading_link_verify(self, *args):
         """
