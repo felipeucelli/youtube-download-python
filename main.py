@@ -225,6 +225,10 @@ class Download:
                                                               format_file, duration, quality, size, path))
 
     def _create_menu(self):
+        """
+        Function responsible for creating the menu tab in the tkinter interface
+        :return:
+        """
         self.new_menu = tkinter.Menu(self.root)
         self.option_menu = tkinter.Menu(self.new_menu, tearoff=0)
         self.new_menu.add_cascade(label='Options', menu=self.option_menu)
@@ -235,15 +239,18 @@ class Download:
         self.root.config(menu=self.new_menu)
 
     def export_list(self):
+        """
+        Responsible for exporting tree view items
+        :return:
+        """
         if self.runtime_files_count > 1:
-            print('ok')
+            # Get the path to save the exported file
             path = filedialog.asksaveasfilename(defaultextension='txt',
                                                 initialfile='export_list',
                                                 filetypes=(('Text files', '*.txt'), ('All files', '*.*')))
             if path != '' and path != ():
                 with open(path, 'w') as save:
-                    count = self.runtime_files_count
-                    for i in range(1, count):
+                    for i in range(1, self.runtime_files_count):
                         lista = self.tree_view.item(i, 'values')
                         save.writelines(f'Title: {lista[2]}\n')
                         save.writelines(f'Format: {lista[3]}\n')
