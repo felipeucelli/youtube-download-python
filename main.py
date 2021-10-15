@@ -250,8 +250,10 @@ class Download:
                                                 filetypes=(('Text files', '*.txt'), ('All files', '*.*')))
             if path != '' and path != ():
                 with open(path, 'w') as save:
+                    save.writelines(f'The amount: {self.runtime_files_count - 1}\n')
                     for i in range(1, self.runtime_files_count):
                         lista = self.tree_view.item(i, 'values')
+                        save.writelines('------------------------------------------------------------\n')
                         save.writelines(f'Title: {lista[2]}\n')
                         save.writelines(f'Format: {lista[3]}\n')
                         save.writelines(f'Duration: {lista[4]}\n')
