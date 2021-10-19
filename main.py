@@ -31,7 +31,8 @@ class Download:
         self.stop_download_status = False
         self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
-        self.runtime_files_count = 1
+        self.files_count_tree_view = 1
+        self.files_count_ok = 0
 
         self.tabs = Notebook(self.root)
         self.download_tab = tkinter.Canvas(self.tabs, highlightthickness=0)
@@ -205,8 +206,8 @@ class Download:
         :param path: File download path
         :return:
         """
-        self.tree_view.insert(parent='', index=tkinter.END, iid=self.runtime_files_count,
-                              values=(self.runtime_files_count, status, self.label_download_name_file["text"],
+        self.tree_view.insert(parent='', index=tkinter.END, iid=self.files_count_tree_view,
+                              values=(self.files_count_tree_view, status, self.label_download_name_file["text"],
                                       format_file, duration, quality, size, path))
 
     def _edit_list_tab(self, status: str, format_file: str, duration: str, quality: str, size='-', path='-'):
@@ -220,9 +221,9 @@ class Download:
         :param path: File download path
         :return:
         """
-        self.tree_view.item(self.runtime_files_count, values=(self.runtime_files_count, status,
-                                                              self.label_download_name_file["text"],
-                                                              format_file, duration, quality, size, path))
+        self.tree_view.item(self.files_count_tree_view, values=(self.files_count_tree_view, status,
+                                                                self.label_download_name_file["text"],
+                                                                format_file, duration, quality, size, path))
 
     def _create_menu(self):
         """
@@ -243,23 +244,24 @@ class Download:
         Responsible for exporting tree view items
         :return:
         """
-        if self.runtime_files_count > 1:
+        if self.files_count_ok > 0:
             # Get the path to save the exported file
             path = filedialog.asksaveasfilename(defaultextension='txt',
                                                 initialfile='export_list',
                                                 filetypes=(('Text files', '*.txt'), ('All files', '*.*')))
             if path != '' and path != ():
                 with open(path, 'w', encoding='utf-8') as save:
-                    save.writelines(f'The amount: {self.runtime_files_count - 1}\n')
-                    for i in range(1, self.runtime_files_count):
-                        lista = self.tree_view.item(i, 'values')
-                        save.writelines('------------------------------------------------------------\n')
-                        save.writelines(f'Title: {lista[2]}\n')
-                        save.writelines(f'Format: {lista[3]}\n')
-                        save.writelines(f'Duration: {lista[4]}\n')
-                        save.writelines(f'Quality: {lista[5]}\n')
-                        save.writelines(f'Size: {lista[6]}\n')
-                        save.writelines('------------------------------------------------------------\n')
+                    save.writelines(f'Counter: {self.files_count_ok}\n')
+                    for i in range(1, self.files_count_tree_view):
+                        tree_view_data = self.tree_view.item(i, 'values')
+                        if tree_view_data[1] == 'SUCCESS':
+                            save.writelines('------------------------------------------------------------\n')
+                            save.writelines(f'Title: {tree_view_data[2]}\n')
+                            save.writelines(f'Format: {tree_view_data[3]}\n')
+                            save.writelines(f'Duration: {tree_view_data[4]}\n')
+                            save.writelines(f'Quality: {tree_view_data[5]}\n')
+                            save.writelines(f'Size: {tree_view_data[6]}\n')
+                            save.writelines('------------------------------------------------------------\n')
 
     def _loading_link_verify(self, *args):
         """
@@ -540,6 +542,7 @@ class Download:
                         self.restart()
                 except exceptions.AgeRestrictedError:
                     self._edit_list_tab('FAIL', 'AUDIO', self.duration, str(self.combo_quality_audio.get()))
+                    self.files_count_tree_view += 1
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
@@ -548,7 +551,8 @@ class Download:
                     file_size = f'{file_size:.2f} MB'
                     self._edit_list_tab('SUCCESS', 'AUDIO', self.duration, str(self.combo_quality_audio.get()),
                                         file_size, str(youtube))
-                    self.runtime_files_count += 1
+                    self.files_count_tree_view += 1
+                    self.files_count_ok += 1
             elif self.youtube_type == 'playlist':
                 playlist = Playlist(self.link)
                 count = 0
@@ -575,6 +579,7 @@ class Download:
                             self.restart()
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab('FAIL', 'AUDIO', self.duration, 'Highest Quality')
+                        self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
@@ -584,7 +589,8 @@ class Download:
                         self._edit_list_tab('SUCCESS', 'AUDIO', self.duration, 'Highest Quality',
                                             file_size, str(youtube))
                         count += 1
-                        self.runtime_files_count += 1
+                        self.files_count_tree_view += 1
+                        self.files_count_ok += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
@@ -617,6 +623,7 @@ class Download:
                 except exceptions.AgeRestrictedError:
                     self._edit_list_tab('FAIL', 'VIDEO', self.duration,
                                         str(self.combo_quality_video.get()), '-', save_path)
+                    self.files_count_tree_view += 1
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
                     self.restart()
@@ -625,7 +632,8 @@ class Download:
                     file_size = f'{file_size:.2f} MB'
                     self._edit_list_tab('SUCCESS', 'VIDEO', self.duration, str(self.combo_quality_video.get()),
                                         file_size, str(youtube))
-                    self.runtime_files_count += 1
+                    self.files_count_tree_view += 1
+                    self.files_count_ok += 1
             self._download_finished()
 
     def _thread_download_video_playlist(self, *args):
@@ -658,6 +666,7 @@ class Download:
                             .streams.get_lowest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab('FAIL', 'VIDEO', self.duration, 'Lowest Resolution', '-', save_path)
+                        self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
@@ -667,7 +676,8 @@ class Download:
                         self._edit_list_tab('SUCCESS', 'VIDEO', self.duration, 'Lowest Resolution',
                                             file_size, str(youtube))
                         count += 1
-                        self.runtime_files_count += 1
+                        self.files_count_tree_view += 1
+                        self.files_count_ok += 1
                     if self.stop_download_status:
                         break
             elif quality == 'highest_resolution':
@@ -688,6 +698,7 @@ class Download:
                             .streams.get_highest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab('FAIL', 'VIDEO', self.duration, 'Highest Resolution')
+                        self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
                         self.restart()
@@ -697,7 +708,8 @@ class Download:
                         self._edit_list_tab('SUCCESS', 'VIDEO', self.duration, 'Highest Resolution',
                                             file_size, str(youtube))
                         count += 1
-                        self.runtime_files_count += 1
+                        self.files_count_tree_view += 1
+                        self.files_count_ok += 1
                     if self.stop_download_status:
                         break
             self._download_finished()
