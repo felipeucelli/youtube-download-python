@@ -249,7 +249,7 @@ class Download:
                                                 initialfile='export_list',
                                                 filetypes=(('Text files', '*.txt'), ('All files', '*.*')))
             if path != '' and path != ():
-                with open(path, 'w') as save:
+                with open(path, 'w', encoding='utf-8') as save:
                     save.writelines(f'The amount: {self.runtime_files_count - 1}\n')
                     for i in range(1, self.runtime_files_count):
                         lista = self.tree_view.item(i, 'values')
