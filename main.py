@@ -100,6 +100,7 @@ class Download(ListTabs):
         self.root.resizable(width=False, height=False)
         self.root.geometry('550x530')
 
+        # Variables
         self.select_type = ''
         self.youtube_type = ''
         self.link = ''
@@ -123,7 +124,7 @@ class Download(ListTabs):
         self._download_tab()
         self._create_menu()
 
-        ListTabs.__init__(self, self.list_tab)
+        ListTabs.__init__(self, self.list_tab)  # Instantiate the main list
 
         self.search_pattern_index = ListTabs(self.list_tab)
         self.search_pattern_index.tree_view.destroy()
@@ -245,13 +246,21 @@ class Download(ListTabs):
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def _search_list(self, *args):
+        """
+        Function responsible for monitoring the search entry in the download list in real time
+        :param args:
+        :return:
+        """
         _none = args
 
         if self.search_list_variable.get() != '':
+
+            # Forget the main list
             self.tree_view.place_forget()
             self.list_scrollbar_x.pack_forget()
             self.list_scrollbar_y.pack_forget()
 
+            # Destroys the secondary list if there is a new requested correspondence
             self.search_pattern_index.tree_view.destroy()
             self.search_pattern_index.list_scrollbar_x.destroy()
             self.search_pattern_index.list_scrollbar_y.destroy()
@@ -259,26 +268,36 @@ class Download(ListTabs):
             pattern_index = self._find_pattern_index()
 
             if len(pattern_index) >= 1:
+
+                # Instantiate the secondary list to receive incoming correspondence
                 self.search_pattern_index._list_tabs()
                 self.search_pattern_index.list_scrollbar_y.pack(side="right", fill="y")
                 self.search_pattern_index.list_scrollbar_x.pack(side="bottom", fill="x")
                 self.search_pattern_index.tree_view.place(x=0, y=50, height=437, width=529)
 
+                # Add all matches found to the secondary list
                 for i in range(1, len(pattern_index) + 1):
                     value = (self.tree_view.item(pattern_index[i - 1], 'values'))
                     self.search_pattern_index._insert_list_tab(value[0], value[1], value[2], value[3],
                                                                value[4], value[5], value[6], value[7])
 
         elif self.search_list_variable.get() == '':
+
+            # Destroys the secondary list if there are no matches requested
             self.search_pattern_index.tree_view.destroy()
             self.search_pattern_index.list_scrollbar_x.destroy()
             self.search_pattern_index.list_scrollbar_y.destroy()
 
+            # Show the main list again
             self.tree_view.place(x=0, y=50, height=437, width=529)
             self.list_scrollbar_y.pack(side="right", fill="y")
             self.list_scrollbar_x.pack(side="bottom", fill="x")
 
     def _find_pattern_index(self):
+        """
+        Function responsible for finding the requested correspondence in the download list
+        :return: Returns the indexes of matches found
+        """
         pattern_index = []
         pattern = re.compile(str(self.search_list_variable.get()), re.IGNORECASE)
         for i in range(1, self.files_count_tree_view):
