@@ -299,7 +299,7 @@ class Download(ListTabs):
         :return: Returns the indexes of matches found
         """
         pattern_index = []
-        pattern = re.compile(str(self.search_list_variable.get()), re.IGNORECASE)
+        pattern = re.compile(re.escape(self.search_list_variable.get()) + '.*', re.IGNORECASE)
         for i in range(1, self.files_count_tree_view):
             tree_view_data = self.tree_view.item(i, 'values')
             x = re.search(pattern, tree_view_data[2])
