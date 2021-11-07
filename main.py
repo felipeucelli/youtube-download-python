@@ -36,7 +36,7 @@ class ListTabs:
         self.list_scrollbar_x.pack(side="bottom", fill="x")
 
         self.tree_view = ttk.Treeview(self.list_tab, height=2,
-                                      column=(1, 2, 3, 4, 5, 6, 7, 8),
+                                      column=(1, 2, 3, 4, 5, 6, 7, 8, 9),
                                       yscrollcommand=self.list_scrollbar_y.set,
                                       xscrollcommand=self.list_scrollbar_x.set)
         self.tree_view.heading('#0', text='')
@@ -57,14 +57,17 @@ class ListTabs:
         self.tree_view.column(6, width=150, anchor=tkinter.CENTER)
         self.tree_view.column(7, width=100, anchor=tkinter.CENTER)
         self.tree_view.column(8, width=300, anchor=tkinter.CENTER)
+        self.tree_view.column(9, width=0, stretch=tkinter.NO)
         self.tree_view.place(x=0, y=50, height=437, width=529)
 
         # Configure scroll bars
         self.list_scrollbar_y.config(command=self.tree_view.yview)
         self.list_scrollbar_x.config(command=self.tree_view.xview)
 
+        self.tree_view.bind('<Double-Button-1>', self._list_info)
+
     def _insert_list_tab(self, index: int, status: str, title: str, format_file: str, duration: str,
-                         quality: str, size='-', path='-'):
+                         quality: str, size: str, path: str, url: str):
         """
         Insert a new column in tree view
         :param status: File status (DOWNLOADING, CONVERTING)
@@ -73,13 +76,14 @@ class ListTabs:
         :param quality: Quality of the file to be downloaded
         :param size: Downloaded file size
         :param path: File download path
+        :param url: Video url
         :return:
         """
         self.tree_view.insert(parent='', index=tkinter.END, iid=index,
-                              values=(index, status, title, format_file, duration, quality, size, path))
+                              values=(index, status, title, format_file, duration, quality, size, path, url))
 
     def _edit_list_tab(self, index: int, status: str, title: str, format_file: str, duration: str,
-                       quality: str, size='-', path='-'):
+                       quality: str, size: str, path: str, url: str):
         """
         Edit the last column inserted in the tree view
         :param status: File status (FAIL, SUCCESS)
@@ -88,9 +92,36 @@ class ListTabs:
         :param quality: Quality of the file to be downloaded
         :param size: Downloaded file size
         :param path: File download path
+        :param url: Video url
         :return:
         """
-        self.tree_view.item(index, values=(index, status, title, format_file, duration, quality, size, path))
+        self.tree_view.item(index, values=(index, status, title, format_file, duration, quality, size, path, url))
+
+    def _list_info(self, *args):
+        """
+        Function responsible for generating a top level that displays download information in a listbox
+        :param args:
+        :return:
+        """
+        _none = args
+
+        if self.tree_view.focus() != '':
+            top_level = tkinter.Toplevel()
+            top_level.resizable(False, False)
+
+            list_scrollbar_x = tkinter.Scrollbar(top_level, orient='horizontal')
+            list_scrollbar_x.pack(side="bottom", fill="x")
+
+            listbox = tkinter.Listbox(top_level, width=50, height=15, font='Arial 10',
+                                      xscrollcommand=list_scrollbar_x.set)
+            listbox.pack()
+            list_scrollbar_x.config(command=listbox.xview)
+
+            for c in range(9):
+                listbox.insert('end', self.tree_view.item(int(self.tree_view.selection()[0]), 'values')[c])
+
+            top_level.grab_set()  # Blocks user interaction with main screen while top level is open
+            top_level.mainloop()
 
 
 class Download(ListTabs):
@@ -134,7 +165,7 @@ class Download(ListTabs):
         self.search_pattern_index.list_scrollbar_x.destroy()
         self.search_pattern_index.list_scrollbar_y.destroy()
 
-        self.search_list_entry = tkinter.Entry(self.list_tab, font='Arial 15', textvariable=self.search_list_variable)
+        self.search_list_entry = ttk.Entry(self.list_tab, font='Arial 15', textvariable=self.search_list_variable)
         self.search_list_entry.place(x=0, y=0, height=30, width=529)
         self.search_list_variable.trace('w', self._search_list)
 
@@ -281,7 +312,7 @@ class Download(ListTabs):
                 for i in range(1, len(pattern_index) + 1):
                     value = (self.tree_view.item(pattern_index[i - 1], 'values'))
                     self.search_pattern_index._insert_list_tab(value[0], value[1], value[2], value[3],
-                                                               value[4], value[5], value[6], value[7])
+                                                               value[4], value[5], value[6], value[7], value[8])
 
         elif self.search_list_variable.get() == '':
 
@@ -616,7 +647,7 @@ class Download(ListTabs):
                     self.label_download_name_file['text'] = youtube.title
                     self._insert_list_tab(self.files_count_tree_view, 'DOWNLOADING',
                                           self.label_download_name_file["text"], 'AUDIO', self.duration,
-                                          str(self.combo_quality_audio.get()), '-', save_path)
+                                          str(self.combo_quality_audio.get()), '-', save_path, self.link)
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(abr=str(self.combo_quality_audio.get()),
                                         only_audio=True, file_extension='mp4')[0].download(save_path)
@@ -624,7 +655,7 @@ class Download(ListTabs):
                         self.label_download_status['text'] = 'Converting Audio, please wait.'
                         self._edit_list_tab(self.files_count_tree_view, 'CONVERTING',
                                             self.label_download_name_file["text"], 'AUDIO', self.duration,
-                                            str(self.combo_quality_audio.get()), '-', save_path)
+                                            str(self.combo_quality_audio.get()), '-', save_path, self.link)
                         self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
                         os.remove(youtube)
                     except Exception as erro:
@@ -633,7 +664,8 @@ class Download(ListTabs):
                         self.restart()
                 except exceptions.AgeRestrictedError:
                     self._edit_list_tab(self.files_count_tree_view, 'FAIL', self.label_download_name_file["text"],
-                                        'AUDIO', self.duration, str(self.combo_quality_audio.get()))
+                                        'AUDIO', self.duration, str(self.combo_quality_audio.get()),
+                                        '-', '-', self.link)
                     self.files_count_tree_view += 1
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
@@ -643,7 +675,7 @@ class Download(ListTabs):
                     file_size = f'{file_size:.2f} MB'
                     self._edit_list_tab(self.files_count_tree_view, 'SUCCESS', self.label_download_name_file["text"],
                                         'AUDIO', self.duration, str(self.combo_quality_audio.get()),
-                                        file_size, str(youtube))
+                                        file_size, str(youtube), self.link)
                     self.files_count_tree_view += 1
                     self.files_count_ok += 1
             elif self.youtube_type == 'playlist':
@@ -660,14 +692,14 @@ class Download(ListTabs):
                         self.label_download_name_file['text'] = youtube.title
                         self._insert_list_tab(self.files_count_tree_view, 'DOWNLOADING',
                                               self.label_download_name_file["text"], 'AUDIO', self.duration,
-                                              'Highest Quality', '-', save_path)
+                                              'Highest Quality', '-', save_path, url)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_audio_only().download(save_path)
                         try:
                             self.label_download_status['text'] = 'Converting Audio, please wait.'
                             self._edit_list_tab(self.files_count_tree_view, 'CONVERTING',
                                                 self.label_download_name_file["text"], 'AUDIO', self.duration,
-                                                'Highest Quality', '-', save_path)
+                                                'Highest Quality', '-', save_path, url)
                             self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
                             os.remove(youtube)
                         except Exception as erro:
@@ -676,7 +708,7 @@ class Download(ListTabs):
                             self.restart()
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab(self.files_count_tree_view, 'FAIL', self.label_download_name_file["text"],
-                                            'AUDIO', self.duration, 'Highest Quality')
+                                            'AUDIO', self.duration, 'Highest Quality', '-', '-', url)
                         self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
@@ -687,7 +719,7 @@ class Download(ListTabs):
                         self._edit_list_tab(self.files_count_tree_view, 'SUCCESS',
                                             self.label_download_name_file["text"], 'AUDIO', self.duration,
                                             'Highest Quality',
-                                            file_size, str(youtube))
+                                            file_size, str(youtube), url)
                         count += 1
                         self.files_count_tree_view += 1
                         self.files_count_ok += 1
@@ -717,14 +749,14 @@ class Download(ListTabs):
                     self.label_download_name_file['text'] = youtube.title
                     self._insert_list_tab(self.files_count_tree_view, 'DOWNLOADING',
                                           self.label_download_name_file["text"], 'VIDEO', self.duration,
-                                          str(self.combo_quality_video.get()), '-', save_path)
+                                          str(self.combo_quality_video.get()), '-', save_path, self.link)
                     youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
                                         progressive=True, file_extension='mp4')[0].download(save_path)
                 except exceptions.AgeRestrictedError:
                     self._edit_list_tab(self.files_count_tree_view, 'FAIL', self.label_download_name_file["text"],
                                         'VIDEO', self.duration,
-                                        str(self.combo_quality_video.get()), '-', save_path)
+                                        str(self.combo_quality_video.get()), '-', '-', self.link)
                     self.files_count_tree_view += 1
                 except Exception as erro:
                     messagebox.showerror('Error', erro)
@@ -734,7 +766,7 @@ class Download(ListTabs):
                     file_size = f'{file_size:.2f} MB'
                     self._edit_list_tab(self.files_count_tree_view, 'SUCCESS', self.label_download_name_file["text"],
                                         'VIDEO', self.duration, str(self.combo_quality_video.get()),
-                                        file_size, str(youtube))
+                                        file_size, str(youtube), self.link)
                     self.files_count_tree_view += 1
                     self.files_count_ok += 1
             self._download_finished()
@@ -765,12 +797,12 @@ class Download(ListTabs):
                         self.label_download_name_file['text'] = youtube.title
                         self._insert_list_tab(self.files_count_tree_view, 'DOWNLOADING',
                                               self.label_download_name_file["text"], 'VIDEO', self.duration,
-                                              'Lowest Resolution', '-', save_path)
+                                              'Lowest Resolution', '-', save_path, url)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_lowest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab(self.files_count_tree_view, 'FAIL', self.label_download_name_file["text"],
-                                            'VIDEO', self.duration, 'Lowest Resolution', '-', save_path)
+                                            'VIDEO', self.duration, 'Lowest Resolution', '-', '-', url)
                         self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
@@ -781,7 +813,7 @@ class Download(ListTabs):
                         self._edit_list_tab(self.files_count_tree_view, 'SUCCESS',
                                             self.label_download_name_file["text"], 'VIDEO', self.duration,
                                             'Lowest Resolution',
-                                            file_size, str(youtube))
+                                            file_size, str(youtube), url)
                         count += 1
                         self.files_count_tree_view += 1
                         self.files_count_ok += 1
@@ -801,12 +833,12 @@ class Download(ListTabs):
                         self.label_download_name_file['text'] = youtube.title
                         self._insert_list_tab(self.files_count_tree_view, 'DOWNLOADING',
                                               self.label_download_name_file["text"], 'VIDEO', self.duration,
-                                              'Highest Resolution', '-', save_path)
+                                              'Highest Resolution', '-', save_path, url)
                         youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                             .streams.get_highest_resolution().download(save_path)
                     except exceptions.AgeRestrictedError:
                         self._edit_list_tab(self.files_count_tree_view, 'FAIL', self.label_download_name_file["text"],
-                                            'VIDEO', self.duration, 'Highest Resolution')
+                                            'VIDEO', self.duration, 'Highest Resolution', '-', '-', url)
                         self.files_count_tree_view += 1
                     except Exception as erro:
                         messagebox.showerror('Error', erro)
@@ -817,7 +849,7 @@ class Download(ListTabs):
                         self._edit_list_tab(self.files_count_tree_view, 'SUCCESS',
                                             self.label_download_name_file["text"], 'VIDEO', self.duration,
                                             'Highest Resolution',
-                                            file_size, str(youtube))
+                                            file_size, str(youtube), url)
                         count += 1
                         self.files_count_tree_view += 1
                         self.files_count_ok += 1
