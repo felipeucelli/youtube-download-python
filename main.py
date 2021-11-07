@@ -105,7 +105,7 @@ class ListTabs:
         """
         _none = args
 
-        if self.tree_view.focus() != '':
+        if self.tree_view.selection() != ():
             top_level = tkinter.Toplevel()
             top_level.resizable(False, False)
 
@@ -120,6 +120,7 @@ class ListTabs:
             for c in range(9):
                 listbox.insert('end', self.tree_view.item(int(self.tree_view.selection()[0]), 'values')[c])
 
+            self.tree_view.selection_remove(self.tree_view.selection())
             top_level.grab_set()  # Blocks user interaction with main screen while top level is open
             top_level.mainloop()
 
