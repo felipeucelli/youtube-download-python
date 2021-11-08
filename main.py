@@ -17,8 +17,9 @@ from pytube import YouTube, Playlist, exceptions
 
 
 class ListTabs:
-    def __init__(self, list_tab):
+    def __init__(self, list_tab, root):
         self.list_tab = list_tab
+        self.root = root
         self._list_tabs()
 
     def _list_tabs(self):
@@ -106,22 +107,28 @@ class ListTabs:
         _none = args
 
         if self.tree_view.selection() != ():
-            top_level = tkinter.Toplevel()
+            top_level = tkinter.Toplevel(self.root)
             top_level.resizable(False, False)
 
             list_scrollbar_x = tkinter.Scrollbar(top_level, orient='horizontal')
             list_scrollbar_x.pack(side="bottom", fill="x")
 
-            listbox = tkinter.Listbox(top_level, width=50, height=15, font='Arial 10',
-                                      xscrollcommand=list_scrollbar_x.set)
-            listbox.pack()
+            listbox = tkinter.Listbox(top_level, width=50, height=15, font='Arial 10', borderwidth=0,
+                                      highlightthickness=0, xscrollcommand=list_scrollbar_x.set)
+            listbox.pack(padx=1)
             list_scrollbar_x.config(command=listbox.xview)
 
             for c in range(9):
                 listbox.insert('end', self.tree_view.item(int(self.tree_view.selection()[0]), 'values')[c])
 
             self.tree_view.selection_remove(self.tree_view.selection())
-            top_level.grab_set()  # Blocks user interaction with main screen while top level is open
+
+            # Blocks user interaction with main screen while top level is open
+            top_level.wait_visibility()
+            top_level.transient(self.root)
+            top_level.grab_set()
+            self.root.wait_window(top_level)
+
             top_level.mainloop()
 
 
@@ -159,9 +166,9 @@ class Download(ListTabs):
         self._download_tab()
         self._create_menu()
 
-        ListTabs.__init__(self, self.list_tab)  # Instantiate the main list
+        ListTabs.__init__(self, self.list_tab, self.root)  # Instantiate the main list
 
-        self.search_pattern_index = ListTabs(self.list_tab)
+        self.search_pattern_index = ListTabs(self.list_tab, self.root)
         self.search_pattern_index.tree_view.destroy()
         self.search_pattern_index.list_scrollbar_x.destroy()
         self.search_pattern_index.list_scrollbar_y.destroy()
