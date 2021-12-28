@@ -119,7 +119,7 @@ class ListTabs:
             list_scrollbar_x.config(command=listbox.xview)
 
             for c in range(9):
-                listbox.insert('end', self.tree_view.item(int(self.tree_view.selection()[0]), 'values')[c])
+                listbox.insert('end', self.tree_view.item(str(self.tree_view.selection()[0]), 'values')[c])
 
             self.tree_view.selection_remove(self.tree_view.selection())
 
@@ -148,6 +148,7 @@ class Download(ListTabs):
         self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
+        self.select_file_playlist = tkinter.StringVar()
         self.files_count_tree_view = 1
         self.files_count_ok = 0
 
@@ -176,6 +177,7 @@ class Download(ListTabs):
         self.search_list_entry = ttk.Entry(self.list_tab, font='Arial 15', textvariable=self.search_list_variable)
         self.search_list_entry.place(x=0, y=0, height=30, width=529)
         self.search_list_variable.trace('w', self._search_list)
+        self.select_file_playlist.trace('w', self._validation_select_file_playlist)
 
     def _download_tab(self):
         """
@@ -237,21 +239,31 @@ class Download(ListTabs):
         self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
 
         # Canvas setting for selecting video playlist file download quality
-        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=250, height=130)
+        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=290)
+        self.label_select_video_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Videos:')
+        self.canvas_video_playlist_download.create_window(75, 20, window=self.label_select_video_playlist)
+        self.entry_select_video_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
+                                                     textvariable=self.select_file_playlist, width=19)
+        self.canvas_video_playlist_download.create_window(255, 20, window=self.entry_select_video_playlist)
         self.btn_highest_resolution = ttk.Button(self.download_tab, text='Highest Resolution',
                                                  command=lambda: self.download_video_playlist('highest_resolution'))
         self.btn_highest_resolution.bind('<Return>', lambda event: self.download_video_playlist('highest_resolution'))
-        self.canvas_video_playlist_download.create_window(125, 40, window=self.btn_highest_resolution)
+        self.canvas_video_playlist_download.create_window(450, 20, window=self.btn_highest_resolution)
         self.btn_lowest_resolution = ttk.Button(self.download_tab, text='Lowest Resolution',
                                                 command=lambda: self.download_video_playlist('lowest_resolution'))
         self.btn_lowest_resolution.bind('<Return>', lambda event: self.download_video_playlist('lowest_resolution'))
-        self.canvas_video_playlist_download.create_window(125, 100, window=self.btn_lowest_resolution)
+        self.canvas_video_playlist_download.create_window(450, 60, window=self.btn_lowest_resolution)
 
         # Canvas setting for selecting audio playlist file download
-        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=250, height=100)
+        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=290)
+        self.label_select_audio_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Audios:')
+        self.canvas_audio_playlist_download.create_window(72, 20, window=self.label_select_audio_playlist)
+        self.entry_select_audio_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
+                                                     textvariable=self.select_file_playlist, width=20)
+        self.canvas_audio_playlist_download.create_window(255, 20, window=self.entry_select_audio_playlist)
         self.btn_audio_file = ttk.Button(self.download_tab, text='    Download    ', command=self.download_audio)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_audio())
-        self.canvas_audio_playlist_download.create_window(125, 50, window=self.btn_audio_file)
+        self.canvas_audio_playlist_download.create_window(465, 20, window=self.btn_audio_file)
 
         # Download Status Canvas Setting
         self.canvas_download_status = tkinter.Canvas(self.download_tab, width=500, height=300)
@@ -509,6 +521,7 @@ class Download(ListTabs):
             self.canvas_file_type.place_forget()
         self.combo_quality_video.set('')
         self.combo_quality_audio.set('')
+        self.select_file_playlist.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def return_page(self):
@@ -614,7 +627,7 @@ class Download(ListTabs):
             if self.youtube_type == 'video':
                 self.canvas_audio_download.place(x=150, y=230)
             elif self.youtube_type == 'playlist':
-                self.canvas_audio_playlist_download.place(x=150, y=230)
+                self.canvas_audio_playlist_download.place(x=0, y=150)
 
         elif self.select_type == 'video':
             if self.youtube_type == 'video':
@@ -633,6 +646,117 @@ class Download(ListTabs):
             self.btn_stop['text'] = '    Stop    '
             self.stop_download_status = False
             self.btn_force_stop.place_forget()
+
+        self.select_file_playlist.set('')
+
+    def _get_select_file_playlist(self):
+        """
+        Function responsible for getting the links selected from the playlist
+        :return: Returns a list of selected links
+        """
+        get_data_files_select = self._validation_select_file_playlist()
+        flag = get_data_files_select[0]
+        select = get_data_files_select[1]
+        if flag:
+            find = re.findall(r'[\d]+|[\-]', select)
+
+            # Adds a sequence of numbers when using "-"
+            for k, v in enumerate(find):
+                if v == '-':
+                    find.pop(k)
+                    i = k
+                    for c in range(int(find[k - 1]), int(find[k])):
+                        find.insert(i, c)
+                        i += 1
+                    find.pop(k - 1)
+
+            # Turns all list items to integers
+            swap_int = []
+            for i in find:
+                swap_int.append(int(i))
+            find = swap_int[:]
+
+            # Arrange the list in ascending order using the insert method
+            i = 1
+            while i < len(find):
+                temp = find[i]
+                swap = False
+                j = i - 1
+                while j >= 0 and find[j] > temp:
+                    find[j + 1] = find[j]
+                    swap = True
+                    j -= 1
+                if swap:
+                    find[j + 1] = temp
+                i += 1
+
+            data = set(find)
+            playlist = []
+            yt = Playlist(self.link)
+            for j in data:
+                playlist.append(yt[int(j) - 1])
+
+            return playlist
+
+    def _validation_select_file_playlist(self, *args):
+        """
+        Function responsible for verifying the chosen links
+        :param args: None
+        :return: Returns if the choice is valid, and a list of the chosen links indexes
+        """
+        _none = args
+        if self.select_file_playlist.get() != '':
+            flag = False
+            select = self.select_file_playlist.get().replace(' ', '')
+
+            # Validate entered characters
+            if re.search(r'[\d]+|[\-]', select):
+                last_number = ''
+                for k, v in enumerate(select):
+                    if select[0].isnumeric() and select[len(select) - 1].isnumeric() and '.' not in select:
+                        if v == '-' or v == ',':
+                            if v == '-':
+                                next_number = re.findall('\d+', select[k + 1:])[0]
+                                if not int(last_number) >= int(next_number):
+                                    continue
+                                else:
+                                    flag = False
+                                    break
+                            if k + 1 < len(select) and select[k + 1].isnumeric():
+                                flag = True
+                            else:
+                                flag = False
+                                break
+                            last_number = ''
+                        elif v.isnumeric():
+                            flag = True
+                            last_number += v
+                    else:
+                        flag = False
+                        break
+            if flag:
+                if self.select_type == 'audio':
+                    self.btn_audio_file.configure(state=tkinter.ACTIVE)
+                    self.entry_select_audio_playlist['foreground'] = 'green'
+                elif self.select_type == 'video':
+                    self.btn_highest_resolution.configure(state=tkinter.ACTIVE)
+                    self.btn_lowest_resolution.configure(state=tkinter.ACTIVE)
+                    self.entry_select_video_playlist['foreground'] = 'green'
+            else:
+                if self.select_type == 'audio':
+                    self.btn_audio_file.configure(state=tkinter.DISABLED)
+                    self.entry_select_audio_playlist['foreground'] = 'red'
+                elif self.select_type == 'video':
+                    self.btn_highest_resolution.configure(state=tkinter.DISABLED)
+                    self.btn_lowest_resolution.configure(state=tkinter.DISABLED)
+                    self.entry_select_video_playlist['foreground'] = 'red'
+            return flag, select
+        else:
+            if self.select_type == 'audio':
+                self.btn_audio_file.configure(state=tkinter.ACTIVE)
+            elif self.select_type == 'video':
+                self.btn_highest_resolution.configure(state=tkinter.ACTIVE)
+                self.btn_lowest_resolution.configure(state=tkinter.ACTIVE)
 
     def _thread_download_audio(self, *args):
         """
@@ -687,7 +811,10 @@ class Download(ListTabs):
                     self.files_count_tree_view += 1
                     self.files_count_ok += 1
             elif self.youtube_type == 'playlist':
-                playlist = Playlist(self.link)
+                if self.select_file_playlist.get() == '':
+                    playlist = Playlist(self.link)
+                else:
+                    playlist = self._get_select_file_playlist()
                 count = 0
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
@@ -792,7 +919,10 @@ class Download(ListTabs):
 
             # Check the video quality (highest_resolution or lowest_resolution) and download
             if quality == 'lowest_resolution':
-                playlist = Playlist(self.link)
+                if self.select_file_playlist.get() == '':
+                    playlist = Playlist(self.link)
+                else:
+                    playlist = self._get_select_file_playlist()
                 count = 0
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
@@ -828,7 +958,10 @@ class Download(ListTabs):
                     if self.stop_download_status:
                         break
             elif quality == 'highest_resolution':
-                playlist = Playlist(self.link)
+                if self.select_file_playlist.get() == '':
+                    playlist = Playlist(self.link)
+                else:
+                    playlist = self._get_select_file_playlist()
                 count = 0
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
@@ -932,7 +1065,7 @@ class Download(ListTabs):
         if self.youtube_type == 'video':
             self.canvas_audio_download.place(x=150, y=200)
         elif self.youtube_type == 'playlist':
-            self.canvas_audio_playlist_download.place(x=150, y=230)
+            self.canvas_audio_playlist_download.place(x=0, y=150)
 
     def _select_video(self):
         """
@@ -945,7 +1078,7 @@ class Download(ListTabs):
         if self.youtube_type == 'video':
             self.canvas_video_download.place(x=150, y=200)
         elif self.youtube_type == 'playlist':
-            self.canvas_video_playlist_download.place(x=150, y=200)
+            self.canvas_video_playlist_download.place(x=0, y=150)
 
     @staticmethod
     def restart():
