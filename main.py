@@ -247,6 +247,7 @@ class Download(ListTabs):
                                                      textvariable=self.select_file_playlist, width=19)
         self.canvas_video_playlist_download.create_window(255, 20, window=self.entry_select_video_playlist)
         self.btn_load_video_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.btn_load_video_list.bind('<Return>', lambda event: self._load_list_playlist())
         self.canvas_video_playlist_download.create_window(75, 60, window=self.btn_load_video_list)
         self.btn_highest_resolution = ttk.Button(self.download_tab, text='Highest Resolution',
                                                  command=lambda: self.download_video_playlist('highest_resolution'))
@@ -265,6 +266,7 @@ class Download(ListTabs):
                                                      textvariable=self.select_file_playlist, width=20)
         self.canvas_audio_playlist_download.create_window(265, 20, window=self.entry_select_audio_playlist)
         self.btn_load_audio_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.btn_load_audio_list.bind('<Return>', lambda event: self._load_list_playlist())
         self.canvas_audio_playlist_download.create_window(75, 60, window=self.btn_load_audio_list)
         self.btn_audio_file = ttk.Button(self.download_tab, text='    Download    ', command=self.download_audio)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_audio())
