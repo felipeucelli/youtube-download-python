@@ -708,7 +708,7 @@ class Download(ListTabs):
                                                          activestyle='none')
             self.listbox_list_playlist.pack(padx=10, pady=10)
             list_playlist_scrollbar_y.config(command=self.listbox_list_playlist.yview)
-            list_playlist_scrollbar_x.config(command=self.listbox_list_playlist.yview)
+            list_playlist_scrollbar_x.config(command=self.listbox_list_playlist.xview)
 
             self.canvas_list_playlist.place(x=0, y=230)
 
