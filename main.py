@@ -146,6 +146,7 @@ class Download(ListTabs):
         self.duration = ''
         self.stop_download_status = False
         self.loading_link_verify_status = False
+        self.load_list_playlist_status = False
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
         self.select_file_playlist = tkinter.StringVar()
@@ -239,12 +240,14 @@ class Download(ListTabs):
         self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
 
         # Canvas setting for selecting video playlist file download quality
-        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=290)
+        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=80)
         self.label_select_video_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Videos:')
         self.canvas_video_playlist_download.create_window(75, 20, window=self.label_select_video_playlist)
         self.entry_select_video_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
                                                      textvariable=self.select_file_playlist, width=19)
         self.canvas_video_playlist_download.create_window(255, 20, window=self.entry_select_video_playlist)
+        self.btn_load_video_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.canvas_video_playlist_download.create_window(75, 60, window=self.btn_load_video_list)
         self.btn_highest_resolution = ttk.Button(self.download_tab, text='Highest Resolution',
                                                  command=lambda: self.download_video_playlist('highest_resolution'))
         self.btn_highest_resolution.bind('<Return>', lambda event: self.download_video_playlist('highest_resolution'))
@@ -255,12 +258,14 @@ class Download(ListTabs):
         self.canvas_video_playlist_download.create_window(450, 60, window=self.btn_lowest_resolution)
 
         # Canvas setting for selecting audio playlist file download
-        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=290)
+        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=80)
         self.label_select_audio_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Audios:')
-        self.canvas_audio_playlist_download.create_window(72, 20, window=self.label_select_audio_playlist)
+        self.canvas_audio_playlist_download.create_window(80, 20, window=self.label_select_audio_playlist)
         self.entry_select_audio_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
                                                      textvariable=self.select_file_playlist, width=20)
-        self.canvas_audio_playlist_download.create_window(255, 20, window=self.entry_select_audio_playlist)
+        self.canvas_audio_playlist_download.create_window(265, 20, window=self.entry_select_audio_playlist)
+        self.btn_load_audio_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.canvas_audio_playlist_download.create_window(75, 60, window=self.btn_load_audio_list)
         self.btn_audio_file = ttk.Button(self.download_tab, text='    Download    ', command=self.download_audio)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_audio())
         self.canvas_audio_playlist_download.create_window(465, 20, window=self.btn_audio_file)
@@ -441,10 +446,10 @@ class Download(ListTabs):
             self.block_interface()
             try:
                 try:
-                    playlist = Playlist(self.youtube_link_variable.get())
-                    title = f'PLAYLIST: {playlist.title}'
+                    self.playlist = Playlist(self.youtube_link_variable.get())
+                    title = f'PLAYLIST: {self.playlist.title}'
                     self.youtube_type = 'playlist'
-                    self.len_playlist_link = len(playlist)
+                    self.len_playlist_link = len(self.playlist)
                 except KeyError:
                     youtube = YouTube(self.youtube_link_variable.get())
                     stream = youtube.streams
@@ -525,6 +530,9 @@ class Download(ListTabs):
         self.select_file_playlist.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
+        self.load_list_playlist_status = False
+        self._close_list_playlist()
+
     def return_page(self):
         """
         Return to file type selection menu (audio, video)
@@ -546,6 +554,9 @@ class Download(ListTabs):
             self.combo_quality_video.set('')
         self.canvas_file_type.place(x=170, y=200)
         self.btn_return.configure(state=tkinter.DISABLED)
+
+        self.load_list_playlist_status = False
+        self._close_list_playlist()
 
         self.select_type = ''
 
@@ -613,6 +624,9 @@ class Download(ListTabs):
             elif self.youtube_type == 'playlist':
                 self.canvas_video_playlist_download.place_forget()
 
+        self.load_list_playlist_status = False
+        self._close_list_playlist()
+
         self.canvas_download_status.place(x=20, y=140)
 
     def _download_finished(self):
@@ -649,6 +663,72 @@ class Download(ListTabs):
             self.btn_force_stop.place_forget()
 
         self.select_file_playlist.set('')
+
+    def _close_list_playlist(self):
+        """
+        Function responsible for closing the playlist list
+        :return:
+        """
+        if not self.load_list_playlist_status and self.select_type != '':
+            if self.select_type == 'audio':
+                self.btn_load_audio_list['text'] = 'Load List'
+            elif self.select_type == 'video':
+                self.btn_load_video_list['text'] = 'Load List'
+            self.canvas_list_playlist.place_forget()
+
+    def _load_list_playlist(self):
+        """
+        Function responsible for creating the playlist listbox
+        :return:
+        """
+        self.load_list_playlist_status = not self.load_list_playlist_status
+
+        if self.load_list_playlist_status:
+            if self.select_type == 'audio':
+                self.btn_load_audio_list['text'] = 'Close List'
+            elif self.select_type == 'video':
+                self.btn_load_video_list['text'] = 'Close List'
+
+            # Instantiation of "listbox_list_playlist" canvas
+            self.canvas_list_playlist = tkinter.Canvas(self.download_tab, width=542, height=200)
+
+            # Instance of the scrollbars of the "listbox_list_playlist" canvas
+            list_playlist_scrollbar_y = tkinter.Scrollbar(self.canvas_list_playlist, orient='vertical')
+            list_playlist_scrollbar_y.pack(side="right", fill="y")
+
+            list_playlist_scrollbar_x = tkinter.Scrollbar(self.canvas_list_playlist, orient='horizontal')
+            list_playlist_scrollbar_x.pack(side="bottom", fill="x")
+
+            self.listbox_list_playlist = tkinter.Listbox(self.canvas_list_playlist,
+                                                         width=72, height=10, font='Arial 10',
+                                                         yscrollcommand=list_playlist_scrollbar_y.set,
+                                                         xscrollcommand=list_playlist_scrollbar_x.set,
+                                                         activestyle='none')
+            self.listbox_list_playlist.pack(padx=10, pady=10)
+            list_playlist_scrollbar_y.config(command=self.listbox_list_playlist.yview)
+            list_playlist_scrollbar_x.config(command=self.listbox_list_playlist.yview)
+
+            self.canvas_list_playlist.place(x=0, y=230)
+
+            start_new_thread(self._thread_load_list_playlist, (self.listbox_list_playlist, None))
+        elif not self.load_list_playlist_status:
+            self._close_list_playlist()
+
+    def _thread_load_list_playlist(self, *args):
+        """
+        Insert the titles of the playlist links into the listbox "listbox_list_playlist" in a new thread
+        :param args: args[0] == "listbox_list_playlist"
+        :return:
+        """
+        listbox = args[0]
+        i = 1
+        for url in self.playlist:
+            title = YouTube(url).title
+            if self.load_list_playlist_status:
+                listbox.insert('end', f'{i} - {title}')
+                i += 1
+            else:
+                break
 
     def _get_select_file_playlist(self):
         """
