@@ -671,7 +671,7 @@ class Download(ListTabs):
         Function responsible for closing the playlist list
         :return:
         """
-        if not self.load_list_playlist_status and self.select_type != '':
+        if not self.load_list_playlist_status and self.select_type != '' and self.youtube_type == 'playlist':
             if self.select_type == 'audio':
                 self.btn_load_audio_list['text'] = 'Load List'
             elif self.select_type == 'video':
