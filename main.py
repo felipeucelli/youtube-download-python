@@ -1042,6 +1042,7 @@ class Download(ListTabs):
                         self.files_count_ok += 1
                     if self.stop_download_status:
                         break
+                    self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
             self._download_finished()
 
     def download_file(self, quality=None):
