@@ -4,16 +4,17 @@
 # @github: github.com/felipeucelli
 
 # Built-in
-import sys
 import os
 import re
+import sys
 import time
 import tkinter
-from tkinter import ttk, filedialog, messagebox
 from _thread import start_new_thread
+from tkinter import ttk, filedialog, messagebox
 
-from moviepy.audio.io.AudioFileClip import AudioFileClip
+from proglog import TqdmProgressBarLogger
 from pytube import YouTube, Playlist, exceptions
+from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 
 class ListTabs:
@@ -132,7 +133,7 @@ class ListTabs:
             top_level.mainloop()
 
 
-class Download(ListTabs):
+class Gui(ListTabs):
     def __init__(self):
         self.root = tkinter.Tk()
         self.root.title('Youtube Download')
@@ -594,8 +595,12 @@ class Download(ListTabs):
         :return: Returns a file converted to mp3
         """
         mp4_without_frames = AudioFileClip(mp4)
-        mp4_without_frames.write_audiofile(mp3, verbose=False, logger=None)
+        mp4_without_frames.write_audiofile(mp3, verbose=False, logger=main)
         mp4_without_frames.close()
+
+    def set_progress_callback(self, percent: str):
+        self.label_download_progress_bar_count['text'] = f'{percent}%'
+        self.label_download_progress_bar['value'] = percent
 
     def progress_callback(self, *args):
         """
@@ -608,8 +613,7 @@ class Download(ListTabs):
         file_size = stream.filesize
         current = ((file_size - bytes_remaining) / file_size)
         percent = '{0:.1f}'.format(current * 100)
-        self.label_download_progress_bar_count['text'] = f'{percent}%'
-        self.label_download_progress_bar['value'] = percent
+        self.set_progress_callback(percent=percent)
 
     def _start_download(self):
         """
@@ -769,7 +773,7 @@ class Download(ListTabs):
                     if select[0].isnumeric() and select[len(select) - 1].isnumeric() and '.' not in select:
                         if v == '-' or v == ',':
                             if v == '-':
-                                next_number = re.findall('\d+', select[k + 1:])[0]
+                                next_number = re.findall(r'\d+', select[k + 1:])[0]
                                 if not int(last_number) >= int(next_number):
                                     continue
                                 else:
@@ -923,6 +927,7 @@ class Download(ListTabs):
                     if self.select_type == 'audio':
                         try:
                             self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
+                            self.set_progress_callback(percent='0')
                             self._edit_list_tab(index=str(self.files_count_tree_view),
                                                 status='CONVERTING',
                                                 title=self.label_download_name_file["text"],
@@ -975,8 +980,7 @@ class Download(ListTabs):
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
-                    self.label_download_progress_bar_count['text'] = '0%'
-                    self.label_download_progress_bar['value'] = 0
+                    self.set_progress_callback(percent='0')
                     try:
                         youtube = YouTube(url)
                         self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
@@ -996,6 +1000,8 @@ class Download(ListTabs):
                             try:
                                 self.label_download_status['text'] = \
                                     f'Converting {self.select_type.title()}, please wait.'
+                                self.label_download_progress_bar_count['text'] = f'0%'
+                                self.label_download_progress_bar['value'] = 0
                                 self._edit_list_tab(index=str(self.files_count_tree_view),
                                                     status='CONVERTING',
                                                     title=self.label_download_name_file["text"],
@@ -1154,7 +1160,7 @@ class Download(ListTabs):
             self.stop_download_status = True
             self.btn_force_stop.place(x=228, y=430)
 
-    def start(self):
+    def start_mainloop(self):
         """
         Start tkinter mainloop
         :return:
@@ -1162,6 +1168,37 @@ class Download(ListTabs):
         self.root.mainloop()
 
 
+class Main(TqdmProgressBarLogger, Gui):
+    """
+    The moviepy library doesn't have a native write_audiofile callback function,
+    so Proglog.TqdmProgressBarLogger is used to capture the progress bar
+    """
+
+    def callback(self, **changes):
+        """
+        TqdmProgressBarLogger function
+        Every time the logger is updated, this function is called
+        :param changes:
+        :return:
+        """
+        if len(self.bars):
+            percentage = next(reversed(self.bars.items()))[1]['index'] / next(reversed(self.bars.items()))[1]['total']
+            percentage = str(percentage * 100).split('.')[0]
+            self.set_progress_callback(percent=percentage)
+
+    def start_gui(self):
+        """
+        Start the graphical interface
+        :return:
+        """
+        Gui.__init__(self)
+        self.start_mainloop()
+
+
+class Download(Main):
+    pass
+
+
 if __name__ == '__main__':
     main = Download()
-    main.start()
+    main.start_gui()
