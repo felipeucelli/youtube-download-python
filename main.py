@@ -391,7 +391,7 @@ class Gui(ListTabs):
         self.popup_menu = tkinter.Menu(self.root, tearoff=0)
 
         self.popup_menu.add_command(label="Copy",
-                                    command=lambda: self.root.clipboard_append(self.youtube_link_variable.get()))
+                                    command=lambda: self._copy_youtube_link())
 
         self.popup_menu.add_command(label="Paste",
                                     command=lambda: self._paste_youtube_link())
@@ -408,6 +408,10 @@ class Gui(ListTabs):
 
     def _mouse_on_youtube_entry(self, status):
         self.mouse_on_youtube_entry_status = status
+
+    def _copy_youtube_link(self):
+        if self.youtube_link_variable.get() != 'Type here a youtube link':
+            self.root.clipboard_append(self.youtube_link_variable.get())
 
     def _paste_youtube_link(self):
         self.focus_in(self.entry_youtube_link, 'Type here a youtube link')
