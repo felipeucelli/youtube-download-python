@@ -125,7 +125,6 @@ class ListTabs:
             self.tree_view.selection_remove(self.tree_view.selection())
 
             # Blocks user interaction with main screen while top level is open
-            top_level.wait_visibility()
             top_level.transient(self.root)
             top_level.grab_set()
             self.root.wait_window(top_level)
@@ -148,6 +147,7 @@ class Gui(ListTabs):
         self.stop_download_status = False
         self.loading_link_verify_status = False
         self.load_list_playlist_status = False
+        self.mouse_on_youtube_entry_status = False
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
         self.select_file_playlist = tkinter.StringVar()
@@ -168,6 +168,8 @@ class Gui(ListTabs):
 
         self._download_tab()
         self._create_menu()
+        self._popup()
+        self.root.bind("<Button-3>", self._do_popup)
 
         ListTabs.__init__(self, self.list_tab, self.root)  # Instantiate the main list
 
@@ -197,6 +199,9 @@ class Gui(ListTabs):
         self.entry_youtube_link.bind('<FocusOut>', lambda event: self.focus_out(self.entry_youtube_link,
                                                                                 'Type here a youtube link'))
         self.entry_youtube_link.bind('<Return>', lambda event: self._link_verify())
+        self.entry_youtube_link.bind('<Enter>', lambda event: self._mouse_on_youtube_entry(True))
+        self.entry_youtube_link.bind('<Leave>', lambda event: self._mouse_on_youtube_entry(False))
+
         self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
         self.btn_link_verify = ttk.Button(self.download_tab, text='    SEARCH    ',
                                           command=self._link_verify)
@@ -381,6 +386,36 @@ class Gui(ListTabs):
         self.option_menu.add_separator()
         self.option_menu.add_command(label='Exit', command=lambda: self.root.destroy())
         self.root.config(menu=self.new_menu)
+
+    def _popup(self):
+        self.popup_menu = tkinter.Menu(self.root, tearoff=0)
+
+        self.popup_menu.add_command(label="Copy",
+                                    command=lambda: self.root.clipboard_append(self.youtube_link_variable.get()))
+
+        self.popup_menu.add_command(label="Paste",
+                                    command=lambda: self._paste_youtube_link())
+        self.popup_menu.add_separator()
+        self.popup_menu.add_command(label="Clear",
+                                    command=lambda: self._clear_youtube_link())
+
+    def _do_popup(self, event):
+        if self.mouse_on_youtube_entry_status:
+            try:
+                self.popup_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.popup_menu.grab_release()
+
+    def _mouse_on_youtube_entry(self, status):
+        self.mouse_on_youtube_entry_status = status
+
+    def _paste_youtube_link(self):
+        self.focus_in(self.entry_youtube_link, 'Type here a youtube link')
+        self.youtube_link_variable.set(self.root.clipboard_get())
+
+    def _clear_youtube_link(self):
+        self.youtube_link_variable.set('')
+        self.focus_out(self.entry_youtube_link, 'Type here a youtube link')
 
     def export_list(self):
         """
