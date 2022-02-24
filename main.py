@@ -806,7 +806,7 @@ class Gui(ListTabs):
             select = self.select_file_playlist.get().replace(' ', '')
 
             # Validate entered characters
-            pattern = r'^\d+(?:-\d+)?(?:,*\d+(?:-\d+)?)*$'
+            pattern = r'^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$'
             regex = re.compile(pattern)
             if regex.findall(select):
                 flag = True
