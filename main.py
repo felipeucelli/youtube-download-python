@@ -806,30 +806,11 @@ class Gui(ListTabs):
             select = self.select_file_playlist.get().replace(' ', '')
 
             # Validate entered characters
-            if re.search(r'[\d]+|[\-]', select):
-                last_number = ''
-                for k, v in enumerate(select):
-                    if select[0].isnumeric() and select[len(select) - 1].isnumeric() and '.' not in select:
-                        if v == '-' or v == ',':
-                            if v == '-':
-                                next_number = re.findall(r'\d+', select[k + 1:])[0]
-                                if not int(last_number) >= int(next_number):
-                                    continue
-                                else:
-                                    flag = False
-                                    break
-                            if k + 1 < len(select) and select[k + 1].isnumeric():
-                                flag = True
-                            else:
-                                flag = False
-                                break
-                            last_number = ''
-                        elif v.isnumeric():
-                            flag = True
-                            last_number += v
-                    else:
-                        flag = False
-                        break
+            pattern = r'^\d+(?:-\d+)?(?:,*\d+(?:-\d+)?)*$'
+            regex = re.compile(pattern)
+            if regex.findall(select):
+                flag = True
+
             data = []
             if flag:
                 find = re.findall(r'[\d]+|[\-]', select)
@@ -839,7 +820,11 @@ class Gui(ListTabs):
                     if v == '-':
                         find.pop(k)
                         i = k
-                        for c in range(int(find[k - 1]), int(find[k])):
+                        if int(find[k - 1]) > int(find[k]):
+                            step = -1
+                        else:
+                            step = 1
+                        for c in range(int(find[k - 1]), int(find[k]), step):
                             find.insert(i, c)
                             i += 1
                         find.pop(k - 1)
