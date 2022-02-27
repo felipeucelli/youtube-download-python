@@ -996,7 +996,7 @@ class Gui(ListTabs):
                             messagebox.showerror('Error', str(erro))
                             os.remove(youtube)
                             self.restart()
-                except exceptions.AgeRestrictedError:
+                except exceptions.PytubeError:
                     self._edit_list_tab(index=str(self.files_count_tree_view),
                                         status='FAIL',
                                         title=self.label_download_name_file["text"],
@@ -1074,7 +1074,7 @@ class Gui(ListTabs):
                                 messagebox.showerror('Error', str(erro))
                                 os.remove(youtube)
                                 self.restart()
-                    except exceptions.AgeRestrictedError:
+                    except exceptions.PytubeError:
                         self._edit_list_tab(index=str(self.files_count_tree_view),
                                             status='FAIL',
                                             title=self.label_download_name_file["text"],
