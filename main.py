@@ -116,7 +116,7 @@ class ListTabs:
 
             listbox = tkinter.Listbox(top_level, width=50, height=15, font='Arial 10', borderwidth=0,
                                       highlightthickness=0, xscrollcommand=list_scrollbar_x.set)
-            listbox.pack(padx=1)
+            listbox.pack(padx=5, pady=5, ipadx=5, ipady=5)
             list_scrollbar_x.config(command=listbox.xview)
 
             for c in range(9):
@@ -126,6 +126,7 @@ class ListTabs:
 
             # Blocks user interaction with main screen while top level is open
             top_level.transient(self.root)
+            top_level.wait_visibility()
             top_level.grab_set()
             self.root.wait_window(top_level)
 
@@ -208,13 +209,14 @@ class Gui(ListTabs):
 
         self.btn_link_verify.bind('<Return>', lambda event: self._link_verify())
         self.canvas_link.create_window(470, 50, window=self.btn_link_verify)
-        self.message_youtube_title = tkinter.Message(self.download_tab, font='Arial 10', width=400)
+        self.message_youtube_title = tkinter.Message(self.download_tab, font='Arial 10', width=450)
         self.canvas_link.create_window(280, 100, window=self.message_youtube_title)
 
         # Animation canvas setup during link search
         self.canvas_load_link = tkinter.Canvas(self.download_tab, width=250, height=130)
-        self.label_load_link_verify = tkinter.Label(self.download_tab, font='Arial 30 bold')
-        self.canvas_load_link.create_window(125, 65, window=self.label_load_link_verify)
+        self.progressbar_link_verify = ttk.Progressbar(self.download_tab, orient=tkinter.HORIZONTAL,
+                                                       mode='indeterminate', length=200)
+        self.canvas_load_link.create_window(125, 65, window=self.progressbar_link_verify)
 
         # Canvas configuration for file type selection (audio, video)
         self.canvas_file_type = tkinter.Canvas(self.download_tab, width=200, height=130)
@@ -365,10 +367,10 @@ class Gui(ListTabs):
         :return: Returns the indexes of matches found
         """
         pattern_index = []
-        pattern = re.compile(re.escape(self.search_list_variable.get()) + '.*', re.IGNORECASE)
+        regex = re.compile(re.escape(self.search_list_variable.get()) + '.*', re.IGNORECASE)
         for i in range(1, self.files_count_tree_view):
             tree_view_data = self.tree_view.item(str(i), 'values')
-            x = re.search(pattern, tree_view_data[2])
+            x = regex.search(tree_view_data[2])
             if x is not None:
                 pattern_index.append(i)
         return pattern_index
@@ -388,18 +390,27 @@ class Gui(ListTabs):
         self.root.config(menu=self.new_menu)
 
     def _popup(self):
+        """
+        Set commands for popup menu
+        :return:
+        """
         self.popup_menu = tkinter.Menu(self.root, tearoff=0)
 
-        self.popup_menu.add_command(label="Copy",
-                                    command=lambda: self._copy_youtube_link())
+        self.popup_menu.add_command(label="Copy     ",
+                                    command=self._copy_youtube_link)
 
-        self.popup_menu.add_command(label="Paste",
-                                    command=lambda: self._paste_youtube_link())
+        self.popup_menu.add_command(label="Paste    ",
+                                    command=self._paste_youtube_link)
         self.popup_menu.add_separator()
-        self.popup_menu.add_command(label="Clear",
-                                    command=lambda: self._clear_youtube_link())
+        self.popup_menu.add_command(label="Clear    ",
+                                    command=self._clear_youtube_link)
 
     def _do_popup(self, event):
+        """
+        Instantiates the _popup function when it is binding
+        :param event:
+        :return:
+        """
         if self.mouse_on_youtube_entry_status:
             try:
                 self.popup_menu.tk_popup(event.x_root, event.y_root)
@@ -407,17 +418,34 @@ class Gui(ListTabs):
                 self.popup_menu.grab_release()
 
     def _mouse_on_youtube_entry(self, status):
+        """
+        Set the mouse state over the link Entry
+        :param status: Current state
+        :return:
+        """
         self.mouse_on_youtube_entry_status = status
 
     def _copy_youtube_link(self):
+        """
+        Add variable content to clipboard
+        :return:
+        """
         if self.youtube_link_variable.get() != 'Type here a youtube link':
             self.root.clipboard_append(self.youtube_link_variable.get())
 
     def _paste_youtube_link(self):
+        """
+        Set the clipboard content in the variable
+        :return:
+        """
         self.focus_in(self.entry_youtube_link, 'Type here a youtube link')
         self.youtube_link_variable.set(self.root.clipboard_get())
 
     def _clear_youtube_link(self):
+        """
+        Clear the variable
+        :return:
+        """
         self.youtube_link_variable.set('')
         self.focus_out(self.entry_youtube_link, 'Type here a youtube link')
 
@@ -452,24 +480,24 @@ class Gui(ListTabs):
         :return:
         """
         _none = args
+
+        # while self._loading_link_verify_status:
+        #    bars = ('|', '/', '-', '\\')
+        #    r = 4
+        #    for i in range(r):
+        #        self.progressbar_link_verify['text'] = bars[i]
+        #        time.sleep(0.20)
+        #        if not self._loading_link_verify_status:
+        #            break
+        # self.canvas_load_link.place_forget()
+
+        self.progressbar_link_verify['value'] = 0
         while self._loading_link_verify_status:
-            wait = 0.20
-            self.label_load_link_verify['text'] = '|'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '/'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '-'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '\\'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '|'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '/'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '-'
-            time.sleep(wait)
-            self.label_load_link_verify['text'] = '\\'
-            time.sleep(wait)
+            self.progressbar_link_verify['value'] += 1
+            time.sleep(0.01)
+            if not self._loading_link_verify_status:
+                break
+
         self.canvas_load_link.place_forget()
 
     def _thread_link_verify(self, *args):
@@ -489,18 +517,19 @@ class Gui(ListTabs):
             try:
                 try:
                     self.playlist = Playlist(self.youtube_link_variable.get())
-                    title = f'PLAYLIST: {self.playlist.title}'
                     self.youtube_type = 'playlist'
                     self.len_playlist_link = len(self.playlist)
+                    title = f'Type: Playlist\n' \
+                            f'Files: {self.len_playlist_link}\n' \
+                            f'Title: {self.playlist.title}'
                 except KeyError:
                     self.youtube = YouTube(self.youtube_link_variable.get())
                     stream = self.youtube.streams
-                    quality_video = self.get_video_quality(stream)
-                    quality_audio = self.get_audio_quality(stream)
-                    self.combo_quality_video['values'] = quality_video
-                    self.combo_quality_audio['values'] = quality_audio
-                    title = f'VIDEO: {self.youtube.title}'
-                    self.youtube_type = 'video'
+                    self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
+                    self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
+                    title = f'Type: Single File\n' \
+                            f'Title: {self.youtube.title}'
+                    self.youtube_type = 'single_file'
             except Exception as erro:
                 self._loading_link_verify_status = False
                 self.unblock_interface()
@@ -556,12 +585,12 @@ class Gui(ListTabs):
         :return:
         """
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_audio_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_video_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_video_playlist_download.place_forget()
@@ -582,12 +611,12 @@ class Gui(ListTabs):
         :return:
         """
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_audio_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_video_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_video_playlist_download.place_forget()
@@ -661,12 +690,12 @@ class Gui(ListTabs):
         """
         self.block_interface()
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_audio_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_video_download.place_forget()
             elif self.youtube_type == 'playlist':
                 self.canvas_video_playlist_download.place_forget()
@@ -687,13 +716,13 @@ class Gui(ListTabs):
         self.unblock_interface()
 
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_audio_download.place(x=150, y=230)
             elif self.youtube_type == 'playlist':
                 self.canvas_audio_playlist_download.place(x=0, y=150)
 
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.canvas_video_download.place(x=150, y=200)
             elif self.youtube_type == 'playlist':
                 self.canvas_video_playlist_download.place(x=0, y=150)
@@ -886,7 +915,7 @@ class Gui(ListTabs):
     def _download_youtube_file(self, save_path, url=None, quality=None):
         youtube = ''
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 youtube = YouTube(self.link, on_progress_callback=self.progress_callback).streams.filter(
                     abr=str(self.combo_quality_audio.get()),
                     only_audio=True,
@@ -897,7 +926,7 @@ class Gui(ListTabs):
                     .streams.get_audio_only().download(save_path)
 
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                     .streams.filter(res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
                                     progressive=True, file_extension='mp4')[0].download(save_path)
@@ -924,7 +953,7 @@ class Gui(ListTabs):
         if save_path != '' and save_path != ():
             self._start_download()
             # Check the file type (video or playlist) and download
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 self.label_download_status['text'] = f'Downloading {self.select_type.title()}, Please Wait.'
                 self.label_download_progress_bar_count['text'] = '0%'
                 self.label_download_progress_bar['value'] = 0
@@ -982,7 +1011,11 @@ class Gui(ListTabs):
                     messagebox.showerror('Error', str(erro))
                     self.restart()
                 else:
-                    file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                    file_size = 0
+                    if self.select_type == 'audio':
+                        file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                    elif self.select_type == 'video':
+                        file_size = os.path.getsize(youtube) / 1048576
                     file_size = f'{file_size:.2f} MB'
                     self._edit_list_tab(index=str(self.files_count_tree_view),
                                         status='SUCCESS',
@@ -1056,7 +1089,11 @@ class Gui(ListTabs):
                         messagebox.showerror('Error', str(erro))
                         self.restart()
                     else:
-                        file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                        file_size = 0
+                        if self.select_type == 'audio':
+                            file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                        elif self.select_type == 'video':
+                            file_size = os.path.getsize(youtube) / 1048576
                         file_size = f'{file_size:.2f} MB'
                         self._edit_list_tab(index=str(self.files_count_tree_view),
                                             status='SUCCESS',
@@ -1081,7 +1118,7 @@ class Gui(ListTabs):
         :return:
         """
         if self.select_type == 'audio':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 if self.combo_quality_audio.get() == '':
                     messagebox.showerror('Error', 'Please Select a Quality')
                 else:
@@ -1091,7 +1128,7 @@ class Gui(ListTabs):
                 start_new_thread(self._thread_download_file, ('highest_quality', None))
 
         elif self.select_type == 'video':
-            if self.youtube_type == 'video':
+            if self.youtube_type == 'single_file':
                 if self.combo_quality_video.get() == '':
                     messagebox.showerror('Error', 'Please Select a Quality')
                 else:
@@ -1101,29 +1138,28 @@ class Gui(ListTabs):
                 start_new_thread(self._thread_download_file, (quality, None))
 
     @staticmethod
-    def get_audio_quality(stream):
+    def get_quality(stream, file_type: str):
         """
-        Get the audio quality and return it in a list to be used in the audio combobox
+        Get the quality of the video or audio and return it in a list to be used in the combobox
         :param stream: Stream of videos generated by pytube
-        :return: Returns a list of the audio quality of the video
-        """
-        yt = stream.filter(file_extension='mp4', only_audio=True)
-        quality_list = []
-        for c in yt:
-            quality_list.append(re.findall(r'\d{2,3}kbps', str(c)))
-        return quality_list
-
-    @staticmethod
-    def get_video_quality(stream):
-        """
-        Get the quality and fps of the video and return it in a list to be used in the video combobox
-        :param stream: Stream of videos generated by pytube
+        :param file_type: file type
         :return: Returns a list of the quality and fps of the videos
         """
-        yt = stream.filter(file_extension='mp4', progressive=True)
+
+        pattern = {'video': r'\d{3}p|\d{2}fps',  # Get Video Quality
+                   'audio': r'\d{2,3}kbps'  # Get Audio Quality
+                   }
+        pattern = pattern[file_type]
+        regex = re.compile(pattern)
+
+        stream_filter = {'video': stream.filter(file_extension='mp4', progressive=True),  # Stream Video File
+                         'audio': stream.filter(file_extension='mp4', only_audio=True)  # Stream Audio file
+                         }
+        yt = stream_filter[file_type]
         quality_list = []
-        for c in yt:
-            quality_list.append(re.findall(r'\d{3}p|\d{2}fps', str(c)))
+
+        for data in yt:
+            quality_list.append(regex.findall(str(data)))
         return quality_list
 
     def _select_audio(self):
@@ -1134,7 +1170,7 @@ class Gui(ListTabs):
         self.select_type = 'audio'
         self.canvas_file_type.place_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
-        if self.youtube_type == 'video':
+        if self.youtube_type == 'single_file':
             self.canvas_audio_download.place(x=150, y=200)
         elif self.youtube_type == 'playlist':
             self.canvas_audio_playlist_download.place(x=0, y=150)
@@ -1147,7 +1183,7 @@ class Gui(ListTabs):
         self.select_type = 'video'
         self.canvas_file_type.place_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
-        if self.youtube_type == 'video':
+        if self.youtube_type == 'single_file':
             self.canvas_video_download.place(x=150, y=200)
         elif self.youtube_type == 'playlist':
             self.canvas_video_playlist_download.place(x=0, y=150)
