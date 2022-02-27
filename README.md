@@ -1,10 +1,25 @@
-# Youtube download in python
+# YouTube download in python
+A GUI that downloads videos from YouTube.
 
-## Running the application
-`python3 main.py`
+## Description
+This application uses the pytube library to download from YouTube, and the moviepy library to convert mp4 files to mp3.
 
-## Installing requirements
-`pip3 install -r requirements.txt`
+You can download single videos or entire playlists. In addition to being able to choose between downloading the video or just the audio.
+
+Fully compatible with Windows and Linux systems (MacOS not tested).
+
+## Quickstart
+Installing dependencies and running the application
+
+### Installing requirements
+```bash
+$ pip3 install -r requirements.txt
+```
+
+### Running the application
+```bash
+$ python3 main.py
+```
 
 ## Prerequisites
 * [Python3](https://www.python.org)
