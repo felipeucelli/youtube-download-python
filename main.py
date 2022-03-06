@@ -293,13 +293,11 @@ class Gui(ListTabs):
                                                         font='Arial 10', fg='green', width=400)
         self.label_download_name_file.pack(pady=25)
         self.label_download_status = tkinter.Label(self.frame_download_status, font='Arial 15', fg='green')
-        self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
         self.label_download_status.pack(pady=10)
         self.label_download_progress_bar = ttk.Progressbar(self.frame_download_status, orient=tkinter.HORIZONTAL,
                                                            mode='determinate', length=400)
         self.label_download_progress_bar.pack(side='left')
         self.label_download_progress_bar_count = tkinter.Label(self.frame_download_status, font='Arial 10', fg='green')
-        self.label_download_progress_bar_count['text'] = '100%'
         self.label_download_progress_bar_count.pack(side='left')
 
         self.frame_stop = tkinter.Frame(self.download_tab)
