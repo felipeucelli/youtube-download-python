@@ -156,8 +156,8 @@ class Gui(ListTabs):
         self.files_count_ok = 0
 
         self.tabs = ttk.Notebook(self.root)
-        self.download_tab = tkinter.Canvas(self.tabs, highlightthickness=0)
-        self.list_tab = tkinter.Canvas(self.tabs, highlightthickness=0)
+        self.download_tab = tkinter.Frame(self.tabs, highlightthickness=0)
+        self.list_tab = tkinter.Frame(self.tabs, highlightthickness=0)
 
         self.tabs.add(self.download_tab, text="Download")
         self.tabs.add(self.list_tab, text="List")
@@ -165,7 +165,7 @@ class Gui(ListTabs):
         self.style_download_tab = ttk.Style(self.download_tab)
         self.style_download_tab.configure('TButton', font=('Arial', 15))
 
-        self.tabs.place(x=0, y=0, height=530, width=550)
+        self.tabs.pack(fill='both', expand=1)
 
         self._download_tab()
         self._create_menu()
@@ -186,14 +186,14 @@ class Gui(ListTabs):
 
     def _download_tab(self):
         """
-        Interface canvas configuration
+        Interface frame configuration
         :return:
         """
-        # Canvas configuration for insertion and search of links
-        self.canvas_link = tkinter.Canvas(self.download_tab, width=550, height=150)
-        self.canvas_link.pack()
-        self.entry_youtube_link = ttk.Entry(self.download_tab, font=('Arial', 15), foreground='gray',
-                                            textvariable=self.youtube_link_variable, width=35)
+        # Frame configuration for insertion and search of links
+        self.frame_link = tkinter.Frame(self.download_tab, width=550, height=150)
+        self.frame_link.pack()
+        self.entry_youtube_link = ttk.Entry(self.frame_link, font=('Arial', 15), foreground='gray',
+                                            textvariable=self.youtube_link_variable, width=35, takefocus=False)
         self.entry_youtube_link.insert(0, 'Type here a youtube link')
         self.entry_youtube_link.bind('<FocusIn>', lambda event: self.focus_in(self.entry_youtube_link,
                                                                               'Type here a youtube link'))
@@ -202,101 +202,112 @@ class Gui(ListTabs):
         self.entry_youtube_link.bind('<Return>', lambda event: self._link_verify())
         self.entry_youtube_link.bind('<Enter>', lambda event: self._mouse_on_youtube_entry(True))
         self.entry_youtube_link.bind('<Leave>', lambda event: self._mouse_on_youtube_entry(False))
-
-        self.canvas_link.create_window(200, 50, window=self.entry_youtube_link)
-        self.btn_link_verify = ttk.Button(self.download_tab, text='    SEARCH    ',
+        self.entry_youtube_link.place(x=5, y=50)
+        self.btn_link_verify = ttk.Button(self.frame_link, text='    SEARCH    ',
                                           command=self._link_verify)
-
         self.btn_link_verify.bind('<Return>', lambda event: self._link_verify())
-        self.canvas_link.create_window(470, 50, window=self.btn_link_verify)
-        self.message_youtube_title = tkinter.Message(self.download_tab, font='Arial 10', width=450)
-        self.canvas_link.create_window(280, 100, window=self.message_youtube_title)
+        self.btn_link_verify.place(x=400, y=48)
+        self.message_youtube_title = tkinter.Message(self.frame_link, font='Arial 10', width=450)
+        self.message_youtube_title.place(x=5, y=85)
 
-        # Animation canvas setup during link search
-        self.canvas_load_link = tkinter.Canvas(self.download_tab, width=250, height=130)
-        self.progressbar_link_verify = ttk.Progressbar(self.download_tab, orient=tkinter.HORIZONTAL,
+        # Animation frame setup during link search
+        self.frame_load_link = tkinter.Frame(self.download_tab)
+        self.progressbar_link_verify = ttk.Progressbar(self.frame_load_link, orient=tkinter.HORIZONTAL,
                                                        mode='indeterminate', length=200)
-        self.canvas_load_link.create_window(125, 65, window=self.progressbar_link_verify)
+        self.progressbar_link_verify.pack(pady=50)
 
-        # Canvas configuration for file type selection (audio, video)
-        self.canvas_file_type = tkinter.Canvas(self.download_tab, width=200, height=130)
-        self.btn_video = ttk.Button(self.root, text='     Video     ', command=self._select_video)
+        # frame configuration for file type selection (audio, video)
+        self.frame_file_type = tkinter.Frame(self.download_tab)
+        self.btn_video = ttk.Button(self.frame_file_type, text='     Video     ', command=self._select_video)
         self.btn_video.bind('<Return>', lambda event: self._select_video())
-        self.canvas_file_type.create_window(105, 40, window=self.btn_video)
-        self.btn_audio = ttk.Button(self.download_tab, text='     Audio     ', command=self._select_audio)
+        self.btn_video.pack(pady=15)
+        self.btn_audio = ttk.Button(self.frame_file_type, text='     Audio     ', command=self._select_audio)
         self.btn_audio.bind('<Return>', lambda event: self._select_audio())
-        self.canvas_file_type.create_window(105, 100, window=self.btn_audio)
+        self.btn_audio.pack(pady=15)
 
-        # Canvas setting for selecting audio file download quality
-        self.canvas_audio_download = tkinter.Canvas(self.download_tab, width=250, height=130)
-        self.label_combo_audio_select = tkinter.Label(self.download_tab, font='Arial 10', text='Select a Quality: ')
-        self.canvas_audio_download.create_window(125, 10, window=self.label_combo_audio_select)
-        self.combo_quality_audio = ttk.Combobox(self.download_tab, font='Arial 15', state='readonly')
-        self.canvas_audio_download.create_window(125, 40, window=self.combo_quality_audio)
-        self.btn_audio_download = ttk.Button(self.download_tab, text='Download', command=self.download_file)
+        # frame setting for selecting audio file download quality
+        self.frame_audio_download = tkinter.Frame(self.download_tab)
+        self.label_combo_audio_select = tkinter.Label(self.frame_audio_download,
+                                                      font='Arial 10', text='Select a Quality: ')
+        self.label_combo_audio_select.pack(pady=5)
+        self.combo_quality_audio = ttk.Combobox(self.frame_audio_download, font='Arial 15', state='readonly')
+        self.combo_quality_audio.pack()
+        self.btn_audio_download = ttk.Button(self.frame_audio_download, text='Download', command=self.download_file)
         self.btn_audio_download.bind('<Return>', lambda event: self.download_file())
-        self.canvas_audio_download.create_window(125, 100, window=self.btn_audio_download)
+        self.btn_audio_download.pack(pady=15)
 
-        # Canvas setting for selecting video file download quality
-        self.canvas_video_download = tkinter.Canvas(self.download_tab, width=250, height=130)
-        self.label_combo_video_select = tkinter.Label(self.download_tab, font='Arial 10', text='Select a Quality: ')
-        self.canvas_video_download.create_window(125, 10, window=self.label_combo_video_select)
-        self.combo_quality_video = ttk.Combobox(self.download_tab, font='Arial 15', state='readonly')
-        self.canvas_video_download.create_window(125, 40, window=self.combo_quality_video)
-        self.btn_video_download = ttk.Button(self.download_tab, text='Download', command=self.download_file)
+        # frame setting for selecting video file download quality
+        self.frame_video_download = tkinter.Frame(self.download_tab)
+        self.label_combo_video_select = tkinter.Label(self.frame_video_download,
+                                                      font='Arial 10', text='Select a Quality: ')
+        self.label_combo_video_select.pack(pady=5)
+        self.combo_quality_video = ttk.Combobox(self.frame_video_download, font='Arial 15', state='readonly')
+        self.combo_quality_video.pack()
+        self.btn_video_download = ttk.Button(self.frame_video_download, text='Download', command=self.download_file)
         self.btn_video_download.bind('<Return>', lambda event: self.download_file())
-        self.canvas_video_download.create_window(125, 100, window=self.btn_video_download)
+        self.btn_video_download.pack(pady=15)
 
-        # Canvas setting for selecting video playlist file download quality
-        self.canvas_video_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=80)
-        self.label_select_video_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Videos:')
-        self.canvas_video_playlist_download.create_window(75, 20, window=self.label_select_video_playlist)
-        self.entry_select_video_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
+        # frame setting for selecting video playlist file download quality
+        self.frame_video_playlist_download = tkinter.Frame(self.download_tab, width=545, height=80)
+        self.label_select_video_playlist = tkinter.Label(self.frame_video_playlist_download,
+                                                         font='Arial 15', text='Choose Videos:')
+        self.label_select_video_playlist.place(x=5, y=5)
+        self.entry_select_video_playlist = ttk.Entry(self.frame_video_playlist_download, font=('Arial', 15),
                                                      textvariable=self.select_file_playlist, width=19)
-        self.canvas_video_playlist_download.create_window(255, 20, window=self.entry_select_video_playlist)
-        self.btn_load_video_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.entry_select_video_playlist.place(x=151, y=5)
+        self.btn_load_video_list = ttk.Button(self.frame_video_playlist_download,
+                                              text='Load List', command=self._load_list_playlist)
         self.btn_load_video_list.bind('<Return>', lambda event: self._load_list_playlist())
-        self.canvas_video_playlist_download.create_window(75, 60, window=self.btn_load_video_list)
-        self.btn_highest_resolution = ttk.Button(self.download_tab, text='Highest Resolution',
+        self.btn_load_video_list.place(x=5, y=40)
+        self.btn_highest_resolution = ttk.Button(self.frame_video_playlist_download, text='Highest Resolution',
                                                  command=lambda: self.download_file('highest_resolution'))
         self.btn_highest_resolution.bind('<Return>', lambda event: self.download_file('highest_resolution'))
-        self.canvas_video_playlist_download.create_window(450, 20, window=self.btn_highest_resolution)
-        self.btn_lowest_resolution = ttk.Button(self.download_tab, text='Lowest Resolution',
+        self.btn_highest_resolution.place(x=370, y=5)
+        self.btn_lowest_resolution = ttk.Button(self.frame_video_playlist_download, text='Lowest Resolution',
                                                 command=lambda: self.download_file('lowest_resolution'))
         self.btn_lowest_resolution.bind('<Return>', lambda event: self.download_file('lowest_resolution'))
-        self.canvas_video_playlist_download.create_window(450, 60, window=self.btn_lowest_resolution)
+        self.btn_lowest_resolution.place(x=370, y=40)
 
-        # Canvas setting for selecting audio playlist file download
-        self.canvas_audio_playlist_download = tkinter.Canvas(self.download_tab, width=542, height=80)
-        self.label_select_audio_playlist = tkinter.Label(self.download_tab, font='Arial 15', text='Choose Audios:')
-        self.canvas_audio_playlist_download.create_window(80, 20, window=self.label_select_audio_playlist)
-        self.entry_select_audio_playlist = ttk.Entry(self.download_tab, font=('Arial', 15),
+        # frame setting for selecting audio playlist file download
+        self.frame_audio_playlist_download = tkinter.Frame(self.download_tab, width=545, height=80)
+        self.label_select_audio_playlist = tkinter.Label(self.frame_audio_playlist_download,
+                                                         font='Arial 15', text='Choose Audios:')
+        self.label_select_audio_playlist.place(x=5, y=5)
+        self.entry_select_audio_playlist = ttk.Entry(self.frame_audio_playlist_download, font=('Arial', 15),
                                                      textvariable=self.select_file_playlist, width=20)
-        self.canvas_audio_playlist_download.create_window(265, 20, window=self.entry_select_audio_playlist)
-        self.btn_load_audio_list = ttk.Button(self.download_tab, text='Load List', command=self._load_list_playlist)
+        self.entry_select_audio_playlist.place(x=151, y=5)
+        self.btn_load_audio_list = ttk.Button(self.frame_audio_playlist_download,
+                                              text='Load List', command=self._load_list_playlist)
         self.btn_load_audio_list.bind('<Return>', lambda event: self._load_list_playlist())
-        self.canvas_audio_playlist_download.create_window(75, 60, window=self.btn_load_audio_list)
-        self.btn_audio_file = ttk.Button(self.download_tab, text='    Download    ', command=self.download_file)
+        self.btn_load_audio_list.place(x=5, y=40)
+        self.btn_audio_file = ttk.Button(self.frame_audio_playlist_download,
+                                         text='    Download    ', command=self.download_file)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_file())
-        self.canvas_audio_playlist_download.create_window(465, 20, window=self.btn_audio_file)
+        self.btn_audio_file.place(x=385, y=5)
 
-        # Download Status Canvas Setting
-        self.canvas_download_status = tkinter.Canvas(self.download_tab, width=500, height=300)
-        self.label_count_playlist = tkinter.Label(self.download_tab, font='Arial 15', fg='green')
-        self.canvas_download_status.create_window(250, 50, window=self.label_count_playlist)
-        self.label_download_name_file = tkinter.Message(self.download_tab, font='Arial 10', fg='green', width=400)
-        self.canvas_download_status.create_window(250, 100, window=self.label_download_name_file)
-        self.label_download_status = tkinter.Label(self.download_tab, font='Arial 15', fg='green')
-        self.canvas_download_status.create_window(250, 150, window=self.label_download_status)
-        self.btn_stop = ttk.Button(self.root, text='    Stop    ', style='btn_stop.TButton', command=self.stop_download)
-        self.btn_stop.bind('<Return>', lambda event: self.stop_download())
-        self.canvas_download_status.create_window(250, 250, window=self.btn_stop)
-        self.label_download_progress_bar = ttk.Progressbar(self.canvas_download_status, orient=tkinter.HORIZONTAL,
+        # Download Status frame Setting
+        self.frame_download_status = tkinter.Frame(self.download_tab)
+        self.label_count_playlist = tkinter.Label(self.frame_download_status, font='Arial 15', fg='green')
+        self.label_count_playlist.pack(pady=5)
+        self.label_download_name_file = tkinter.Message(self.frame_download_status,
+                                                        font='Arial 10', fg='green', width=400)
+        self.label_download_name_file.pack(pady=25)
+        self.label_download_status = tkinter.Label(self.frame_download_status, font='Arial 15', fg='green')
+        self.label_download_status['text'] = 'Downloading Audio Playlist, please wait.'
+        self.label_download_status.pack(pady=10)
+        self.label_download_progress_bar = ttk.Progressbar(self.frame_download_status, orient=tkinter.HORIZONTAL,
                                                            mode='determinate', length=400)
-        self.canvas_download_status.create_window(250, 200, window=self.label_download_progress_bar)
-        self.label_download_progress_bar_count = tkinter.Label(self.download_tab, font='Arial 10', fg='green')
-        self.canvas_download_status.create_window(480, 200, window=self.label_download_progress_bar_count)
-        self.btn_force_stop = ttk.Button(self.download_tab, text='Force Stop', style='btn_force_stop.TButton',
+        self.label_download_progress_bar.pack(side='left')
+        self.label_download_progress_bar_count = tkinter.Label(self.frame_download_status, font='Arial 10', fg='green')
+        self.label_download_progress_bar_count['text'] = '100%'
+        self.label_download_progress_bar_count.pack(side='left')
+
+        self.frame_stop = tkinter.Frame(self.download_tab)
+        self.btn_stop = ttk.Button(self.frame_stop, text='    Stop    ', style='btn_stop.TButton',
+                                   command=self.stop_download)
+        self.btn_stop.bind('<Return>', lambda event: self.stop_download())
+        self.btn_stop.pack()
+        self.btn_force_stop = ttk.Button(self.frame_stop, text='Force Stop', style='btn_force_stop.TButton',
                                          command=self.force_stop_download)
         self.btn_force_stop.bind('<Return>', lambda event: self.force_stop_download())
         self.style_download_tab.configure('btn_stop.TButton', font=('Arial', 15))
@@ -304,13 +315,13 @@ class Gui(ListTabs):
         self.style_download_tab.configure('btn_force_stop.TButton', font=('Arial', 10))
         self.style_download_tab.map('btn_force_stop.TButton', foreground=[('!disabled', 'red'), ('disabled', 'red')])
 
-        # Canvas setting for the return button for selecting file type (audio, video)
-        self.canvas_return = tkinter.Canvas(self.download_tab, width=50, height=50)
-        self.canvas_return.place(y=445, x=0)
-        self.btn_return = tkinter.Button(self.download_tab, text='<', font='Arial 15',
+        # frame setting for the return button for selecting file type (audio, video)
+        self.frame_return = tkinter.Frame(self.download_tab, width=50, height=50)
+        self.frame_return.place(y=465, x=0)
+        self.btn_return = tkinter.Button(self.frame_return, text='<', font='Arial 15',
                                          borderwidth=0, command=self.return_page)
         self.btn_return.bind('<Return>', lambda event: self.return_page())
-        self.canvas_return.create_window(25, 25, window=self.btn_return)
+        self.btn_return.pack(pady=1, padx=10)
         self.btn_return.configure(state=tkinter.DISABLED)
 
     def _search_list(self, *args):
@@ -489,7 +500,7 @@ class Gui(ListTabs):
         #        time.sleep(0.20)
         #        if not self._loading_link_verify_status:
         #            break
-        # self.canvas_load_link.place_forget()
+        # self.frame_load_link.place_forget()
 
         self.progressbar_link_verify['value'] = 0
         while self._loading_link_verify_status:
@@ -498,7 +509,7 @@ class Gui(ListTabs):
             if not self._loading_link_verify_status:
                 break
 
-        self.canvas_load_link.place_forget()
+        self.frame_load_link.pack_forget()
 
     def _thread_link_verify(self, *args):
         """
@@ -511,7 +522,7 @@ class Gui(ListTabs):
         self.select_type = ''
         if self.youtube_link_variable.get() != '' and self.youtube_link_variable.get() != 'Type here a youtube link':
             self._loading_link_verify_status = True
-            self.canvas_load_link.place(x=150, y=200)
+            self.frame_load_link.pack(pady=50)
             start_new_thread(self._loading_link_verify, (None, None))
             self.block_interface()
             try:
@@ -534,22 +545,22 @@ class Gui(ListTabs):
                 self._loading_link_verify_status = False
                 self.unblock_interface()
                 messagebox.showerror('Error', str(erro))
-                self.canvas_file_type.place_forget()
+                self.frame_file_type.pack_forget()
                 if self.select_type != '':
                     if self.select_type == 'audio':
-                        self.canvas_audio_download.place_forget()
+                        self.frame_audio_download.pack_forget()
                     elif self.select_type == 'video':
-                        self.canvas_video_download.place_forget()
+                        self.frame_video_download.pack_forget()
             else:
                 self._loading_link_verify_status = False
                 self.unblock_interface()
                 self.message_youtube_title['text'] = title
-                self.canvas_file_type.place(x=170, y=200)
+                self.frame_file_type.pack(pady=50)
                 self.link = self.youtube_link_variable.get()
         else:
             self.select_type = ''
             self.message_youtube_title['text'] = ''
-            self.canvas_file_type.place_forget()
+            self.frame_file_type.pack_forget()
 
     def _link_verify(self):
         """
@@ -586,16 +597,16 @@ class Gui(ListTabs):
         """
         if self.select_type == 'audio':
             if self.youtube_type == 'single_file':
-                self.canvas_audio_download.place_forget()
+                self.frame_audio_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_audio_playlist_download.place_forget()
+                self.frame_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
             if self.youtube_type == 'single_file':
-                self.canvas_video_download.place_forget()
+                self.frame_video_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_video_playlist_download.place_forget()
+                self.frame_video_playlist_download.place_forget()
         elif self.select_type == '':
-            self.canvas_file_type.place_forget()
+            self.frame_file_type.pack_forget()
         self.combo_quality_video.set('')
         self.combo_quality_audio.set('')
         self.select_file_playlist.set('')
@@ -612,19 +623,19 @@ class Gui(ListTabs):
         """
         if self.select_type == 'audio':
             if self.youtube_type == 'single_file':
-                self.canvas_audio_download.place_forget()
+                self.frame_audio_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_audio_playlist_download.place_forget()
+                self.frame_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
             if self.youtube_type == 'single_file':
-                self.canvas_video_download.place_forget()
+                self.frame_video_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_video_playlist_download.place_forget()
+                self.frame_video_playlist_download.place_forget()
         if self.combo_quality_audio.get() != '':
             self.combo_quality_audio.set('')
         if self.combo_quality_video.get() != '':
             self.combo_quality_video.set('')
-        self.canvas_file_type.place(x=170, y=200)
+        self.frame_file_type.pack(pady=50)
         self.btn_return.configure(state=tkinter.DISABLED)
 
         if self.load_list_playlist_status:
@@ -667,6 +678,11 @@ class Gui(ListTabs):
         mp4_without_frames.close()
 
     def set_progress_callback(self, percent: str):
+        """
+        Set the download progress bar
+        :param percent: Progress bar percentage
+        :return:
+        """
         self.label_download_progress_bar_count['text'] = f'{percent}%'
         self.label_download_progress_bar['value'] = percent
 
@@ -685,47 +701,49 @@ class Gui(ListTabs):
 
     def _start_download(self):
         """
-        Removes options canvas and added status download canvas
+        Removes options frame and added status download frame
         :return:
         """
         self.block_interface()
         if self.select_type == 'audio':
             if self.youtube_type == 'single_file':
-                self.canvas_audio_download.place_forget()
+                self.frame_audio_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_audio_playlist_download.place_forget()
+                self.frame_audio_playlist_download.place_forget()
         elif self.select_type == 'video':
             if self.youtube_type == 'single_file':
-                self.canvas_video_download.place_forget()
+                self.frame_video_download.pack_forget()
             elif self.youtube_type == 'playlist':
-                self.canvas_video_playlist_download.place_forget()
+                self.frame_video_playlist_download.place_forget()
 
         if self.load_list_playlist_status:
             self.load_list_playlist_status = False
             self._close_list_playlist()
 
-        self.canvas_download_status.place(x=20, y=140)
+        self.frame_download_status.pack()
+        self.frame_stop.pack(pady=20)
 
     def _download_finished(self):
         """
-        Show the options canvas after the download finishes
+        Show the options frame after the download finishes
         :return:
         """
         messagebox.showinfo('Info', 'Download Finished')
-        self.canvas_download_status.place_forget()
+        self.frame_download_status.pack_forget()
+        self.frame_stop.pack_forget()
         self.unblock_interface()
 
         if self.select_type == 'audio':
             if self.youtube_type == 'single_file':
-                self.canvas_audio_download.place(x=150, y=230)
+                self.frame_audio_download.pack(pady=50)
             elif self.youtube_type == 'playlist':
-                self.canvas_audio_playlist_download.place(x=0, y=150)
+                self.frame_audio_playlist_download.place(x=1, y=150)
 
         elif self.select_type == 'video':
             if self.youtube_type == 'single_file':
-                self.canvas_video_download.place(x=150, y=200)
+                self.frame_video_download.pack(pady=50)
             elif self.youtube_type == 'playlist':
-                self.canvas_video_playlist_download.place(x=0, y=150)
+                self.frame_video_playlist_download.place(x=1, y=150)
 
         self.label_count_playlist['text'] = ''
         self.label_download_name_file['text'] = ''
@@ -737,7 +755,7 @@ class Gui(ListTabs):
             self.btn_stop.configure(state=tkinter.ACTIVE)
             self.btn_stop['text'] = '    Stop    '
             self.stop_download_status = False
-            self.btn_force_stop.place_forget()
+            self.btn_force_stop.pack_forget()
 
         self.select_file_playlist.set('')
 
@@ -751,7 +769,7 @@ class Gui(ListTabs):
                 self.btn_load_audio_list['text'] = 'Load List'
             elif self.select_type == 'video':
                 self.btn_load_video_list['text'] = 'Load List'
-            self.canvas_list_playlist.place_forget()
+            self.frame_list_playlist.place_forget()
 
     def _load_list_playlist(self):
         """
@@ -766,17 +784,17 @@ class Gui(ListTabs):
             elif self.select_type == 'video':
                 self.btn_load_video_list['text'] = 'Close List'
 
-            # Instantiation of "listbox_list_playlist" canvas
-            self.canvas_list_playlist = tkinter.Canvas(self.download_tab, width=542, height=200)
+            # Instantiation of "listbox_list_playlist" frame
+            self.frame_list_playlist = tkinter.Frame(self.download_tab, width=542, height=200)
 
-            # Instance of the scrollbars of the "listbox_list_playlist" canvas
-            list_playlist_scrollbar_y = tkinter.Scrollbar(self.canvas_list_playlist, orient='vertical')
+            # Instance of the scrollbars of the "listbox_list_playlist" frame
+            list_playlist_scrollbar_y = tkinter.Scrollbar(self.frame_list_playlist, orient='vertical')
             list_playlist_scrollbar_y.pack(side="right", fill="y")
 
-            list_playlist_scrollbar_x = tkinter.Scrollbar(self.canvas_list_playlist, orient='horizontal')
+            list_playlist_scrollbar_x = tkinter.Scrollbar(self.frame_list_playlist, orient='horizontal')
             list_playlist_scrollbar_x.pack(side="bottom", fill="x")
 
-            self.listbox_list_playlist = tkinter.Listbox(self.canvas_list_playlist,
+            self.listbox_list_playlist = tkinter.Listbox(self.frame_list_playlist,
                                                          width=72, height=10, font='Arial 10',
                                                          yscrollcommand=list_playlist_scrollbar_y.set,
                                                          xscrollcommand=list_playlist_scrollbar_x.set,
@@ -785,7 +803,7 @@ class Gui(ListTabs):
             list_playlist_scrollbar_y.config(command=self.listbox_list_playlist.yview)
             list_playlist_scrollbar_x.config(command=self.listbox_list_playlist.xview)
 
-            self.canvas_list_playlist.place(x=0, y=230)
+            self.frame_list_playlist.place(x=0, y=230)
 
             start_new_thread(self._thread_load_list_playlist, (self.listbox_list_playlist, None))
         elif not self.load_list_playlist_status:
@@ -1173,29 +1191,29 @@ class Gui(ListTabs):
 
     def _select_audio(self):
         """
-        Enable audio canvas
+        Enable audio frame
         :return:
         """
         self.select_type = 'audio'
-        self.canvas_file_type.place_forget()
+        self.frame_file_type.pack_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
         if self.youtube_type == 'single_file':
-            self.canvas_audio_download.place(x=150, y=200)
+            self.frame_audio_download.pack(pady=50)
         elif self.youtube_type == 'playlist':
-            self.canvas_audio_playlist_download.place(x=0, y=150)
+            self.frame_audio_playlist_download.place(x=1, y=150)
 
     def _select_video(self):
         """
-        Enable video canvas
+        Enable video frame
         :return:
         """
         self.select_type = 'video'
-        self.canvas_file_type.place_forget()
+        self.frame_file_type.pack_forget()
         self.btn_return.configure(state=tkinter.ACTIVE)
         if self.youtube_type == 'single_file':
-            self.canvas_video_download.place(x=150, y=200)
+            self.frame_video_download.pack(pady=50)
         elif self.youtube_type == 'playlist':
-            self.canvas_video_playlist_download.place(x=0, y=150)
+            self.frame_video_playlist_download.place(x=1, y=150)
 
     @staticmethod
     def restart():
@@ -1227,7 +1245,7 @@ class Gui(ListTabs):
             self.btn_stop['text'] = 'Stopping...'
             self.btn_stop.configure(state=tkinter.DISABLED)
             self.stop_download_status = True
-            self.btn_force_stop.place(x=228, y=430)
+            self.btn_force_stop.pack(pady=20)
 
     def start_mainloop(self):
         """
