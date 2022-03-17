@@ -68,36 +68,22 @@ class ListTabs:
 
         self.tree_view.bind('<Double-Button-1>', self._list_info)
 
-    def _insert_list_tab(self, index: str, status: str, title: str, format_file: str, duration: str,
-                         quality: str, size: str, path: str, url: str):
+    def _insert_list_tab(self, *args):
         """
         Insert a new column in tree view
-        :param status: File status (DOWNLOADING, CONVERTING)
-        :param format_file: File format that will be downloaded (AUDIO, VIDEO)
-        :param duration: Media file duration
-        :param quality: Quality of the file to be downloaded
-        :param size: Downloaded file size
-        :param path: File download path
-        :param url: Video url
+        :param args: Receive the value of status, format_file, duration, quality, size, path, url
         :return:
         """
-        self.tree_view.insert(parent='', index=tkinter.END, iid=index,
-                              values=(index, status, title, format_file, duration, quality, size, path, url))
+        self.tree_view.insert(parent='', index=tkinter.END, iid=args[0][0],
+                              values=[values for values in args[0]])
 
-    def _edit_list_tab(self, index: str, status: str, title: str, format_file: str, duration: str,
-                       quality: str, size: str, path: str, url: str):
+    def _edit_list_tab(self, *args):
         """
         Edit the last column inserted in the tree view
-        :param status: File status (FAIL, SUCCESS)
-        :param format_file: File format that will be downloaded (AUDIO, VIDEO)
-        :param duration: Media file duration
-        :param quality: Quality of the file to be downloaded
-        :param size: Downloaded file size
-        :param path: File download path
-        :param url: Video url
+        :param args: Receive the value of status, format_file, duration, quality, size, path, url
         :return:
         """
-        self.tree_view.item(index, values=(index, status, title, format_file, duration, quality, size, path, url))
+        self.tree_view.item(args[0][0], values=[values for values in args[0]])
 
     def _list_info(self, *args):
         """
@@ -356,9 +342,8 @@ class Gui(ListTabs):
 
                 # Add all matches found to the secondary list
                 for i in range(1, len(pattern_index) + 1):
-                    value = (self.tree_view.item(str(pattern_index[i - 1]), 'values'))
-                    self.search_pattern_index._insert_list_tab(value[0], value[1], value[2], value[3],
-                                                               value[4], value[5], value[6], value[7], value[8])
+                    values = (self.tree_view.item(str(pattern_index[i - 1]), 'values'))
+                    self.search_pattern_index._insert_list_tab(values)
 
         elif self.search_list_variable.get() == '':
 
@@ -717,6 +702,30 @@ class Gui(ListTabs):
 
         self.select_file_playlist.set('')
 
+    def modify_data_treeview(self, modification_type: str, status: str, quality: str, size='-', path='-') -> None:
+        """
+        Insert and edit treeview values
+        :param modification_type:
+        :param status: status (DOWNLOADING, CONVERTING, SUCCESS)
+        :param quality: Quality of the file to be downloaded
+        :param size: Downloaded file size
+        :param path: File download path
+        :return:
+        """
+        values = [self.files_count_tree_view, status,
+                  self.label_download_name_file["text"],
+                  f'{self.select_type.upper()}',
+                  self.duration,
+                  quality,
+                  size,
+                  path,
+                  self.link]
+
+        if modification_type == 'insert':
+            self._insert_list_tab(values)
+        elif modification_type == 'edit':
+            self._edit_list_tab(values)
+
     def _close_list_playlist(self):
         """
         Function responsible for closing the playlist list
@@ -930,6 +939,56 @@ class Gui(ListTabs):
 
         return youtube
 
+    def _download_file_youtube(self, save_path: str, quality: str, url=None) -> None:
+        """
+        Add the file details in the treeview and call the download function
+        :param save_path: Path to save the file
+        :param quality: Selected file quality
+        :param url: Contains playlist links
+        :return: None
+        """
+        try:
+            youtube = YouTube(url) if url else self.youtube
+            self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
+            self.label_download_name_file['text'] = youtube.title
+            self.modify_data_treeview(modification_type='insert', status='DOWNLOADING', quality=quality, path=save_path)
+
+            youtube = self._download_youtube_file(save_path=save_path, url=url, quality=quality)
+
+            if self.select_type == 'audio':
+                try:
+                    self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
+                    self.set_progress_callback(percent='0')
+                    self.modify_data_treeview(modification_type='edit', status='CONVERTING',
+                                              quality=quality,
+                                              path=save_path)
+                    self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
+                    os.remove(youtube)
+                except Exception as erro:
+                    messagebox.showerror('Error', str(erro))
+                    os.remove(youtube)
+                    self.restart()
+        except exceptions.PytubeError:
+            self.modify_data_treeview(modification_type='edit', status='FAIL',  quality=quality)
+            self.files_count_tree_view += 1
+        except Exception as erro:
+            messagebox.showerror('Error', str(erro))
+            self.restart()
+        else:
+            file_size = 0
+            if self.select_type == 'audio':
+                file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+            elif self.select_type == 'video':
+                file_size = os.path.getsize(youtube) / 1048576
+            file_size = f'{file_size:.2f} MB'
+            self.modify_data_treeview(modification_type='edit',
+                                      status='SUCCESS',
+                                      quality=quality,
+                                      size=file_size,
+                                      path=str(youtube))
+            self.files_count_tree_view += 1
+            self.files_count_ok += 1
+
     def _thread_download_file(self, *args):
         """
         Download playlist audio files and videos
@@ -943,79 +1002,14 @@ class Gui(ListTabs):
             # Check the file type (video or playlist) and download
             if self.youtube_type == 'single_file':
                 self.label_download_status['text'] = f'Downloading {self.select_type.title()}, Please Wait.'
-                self.label_download_progress_bar_count['text'] = '0%'
-                self.label_download_progress_bar['value'] = 0
+                self.set_progress_callback(percent='0')
                 if self.select_type == 'audio':
                     quality = self.combo_quality_audio.get()
                 elif self.select_type == 'video':
                     quality = self.combo_quality_video.get()
-                try:
-                    youtube = self.youtube
-                    self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
-                    self.label_download_name_file['text'] = youtube.title
-                    self._insert_list_tab(index=str(self.files_count_tree_view),
-                                          status='DOWNLOADING',
-                                          title=self.label_download_name_file["text"],
-                                          format_file=f'{self.select_type.upper()}',
-                                          duration=self.duration,
-                                          quality=quality,
-                                          size='-',
-                                          path=save_path,
-                                          url=self.link)
 
-                    youtube = self._download_youtube_file(save_path)
+                self._download_file_youtube(save_path=save_path, quality=quality)
 
-                    if self.select_type == 'audio':
-                        try:
-                            self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
-                            self.set_progress_callback(percent='0')
-                            self._edit_list_tab(index=str(self.files_count_tree_view),
-                                                status='CONVERTING',
-                                                title=self.label_download_name_file["text"],
-                                                format_file=f'{self.select_type.upper()}',
-                                                duration=self.duration,
-                                                quality=quality,
-                                                size='-',
-                                                path=save_path,
-                                                url=self.link)
-                            self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
-                            os.remove(youtube)
-                        except Exception as erro:
-                            messagebox.showerror('Error', str(erro))
-                            os.remove(youtube)
-                            self.restart()
-                except exceptions.PytubeError:
-                    self._edit_list_tab(index=str(self.files_count_tree_view),
-                                        status='FAIL',
-                                        title=self.label_download_name_file["text"],
-                                        format_file=f'{self.select_type.upper()}',
-                                        duration=self.duration,
-                                        quality=quality,
-                                        size='-',
-                                        path='-',
-                                        url=self.link)
-                    self.files_count_tree_view += 1
-                except Exception as erro:
-                    messagebox.showerror('Error', str(erro))
-                    self.restart()
-                else:
-                    file_size = 0
-                    if self.select_type == 'audio':
-                        file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
-                    elif self.select_type == 'video':
-                        file_size = os.path.getsize(youtube) / 1048576
-                    file_size = f'{file_size:.2f} MB'
-                    self._edit_list_tab(index=str(self.files_count_tree_view),
-                                        status='SUCCESS',
-                                        title=self.label_download_name_file["text"],
-                                        format_file=f'{self.select_type.upper()}',
-                                        duration=self.duration,
-                                        quality=quality,
-                                        size=file_size,
-                                        path=str(youtube),
-                                        url=self.link)
-                    self.files_count_tree_view += 1
-                    self.files_count_ok += 1
             elif self.youtube_type == 'playlist':
                 if self.select_file_playlist.get() == '':
                     playlist = self.playlist
@@ -1024,106 +1018,39 @@ class Gui(ListTabs):
                 count = 0
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = 'Downloading Audio Playlist, Please Wait.'
+                    self.label_download_status['text'] = f'Downloading {self.select_type} Playlist, Please Wait.'
                     self.set_progress_callback(percent='0')
-                    try:
-                        youtube = YouTube(url)
-                        self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
-                        self.label_download_name_file['text'] = youtube.title
-                        self._insert_list_tab(index=str(self.files_count_tree_view),
-                                              status='DOWNLOADING',
-                                              title=self.label_download_name_file["text"],
-                                              format_file=f'{self.select_type.upper()}',
-                                              duration=self.duration,
-                                              quality=f'{quality.replace("_", " ").title()}',
-                                              size='-',
-                                              path=save_path,
-                                              url=url)
 
-                        youtube = self._download_youtube_file(save_path=save_path, url=url, quality=quality)
-                        if self.select_type == 'audio':
-                            try:
-                                self.label_download_status['text'] = \
-                                    f'Converting {self.select_type.title()}, Please Wait.'
-                                self.label_download_progress_bar_count['text'] = f'0%'
-                                self.label_download_progress_bar['value'] = 0
-                                self._edit_list_tab(index=str(self.files_count_tree_view),
-                                                    status='CONVERTING',
-                                                    title=self.label_download_name_file["text"],
-                                                    format_file=f'{self.select_type.upper()}',
-                                                    duration=self.duration,
-                                                    quality=f'{quality.replace("_", " ").title()}',
-                                                    size='-',
-                                                    path=save_path,
-                                                    url=url)
-                                self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
-                                os.remove(youtube)
-                            except Exception as erro:
-                                messagebox.showerror('Error', str(erro))
-                                os.remove(youtube)
-                                self.restart()
-                    except exceptions.PytubeError:
-                        self._edit_list_tab(index=str(self.files_count_tree_view),
-                                            status='FAIL',
-                                            title=self.label_download_name_file["text"],
-                                            format_file=f'{self.select_type.upper()}',
-                                            duration=self.duration,
-                                            quality=f'{quality.replace("_", " ").title()}',
-                                            size='-',
-                                            path='-',
-                                            url=url)
-                        self.files_count_tree_view += 1
-                    except Exception as erro:
-                        messagebox.showerror('Error', str(erro))
-                        self.restart()
-                    else:
-                        file_size = 0
-                        if self.select_type == 'audio':
-                            file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
-                        elif self.select_type == 'video':
-                            file_size = os.path.getsize(youtube) / 1048576
-                        file_size = f'{file_size:.2f} MB'
-                        self._edit_list_tab(index=str(self.files_count_tree_view),
-                                            status='SUCCESS',
-                                            title=self.label_download_name_file["text"],
-                                            format_file=f'{self.select_type.upper()}',
-                                            duration=self.duration,
-                                            quality=f'{quality.replace("_", " ").title()}',
-                                            size=file_size,
-                                            path=str(youtube),
-                                            url=url)
-                        count += 1
-                        self.files_count_tree_view += 1
-                        self.files_count_ok += 1
+                    self._download_file_youtube(save_path=save_path, quality=quality, url=url)
+
+                    count += 1
                     if self.stop_download_status:
                         break
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
             self._download_finished()
 
-    def download_file(self, quality=None):
+    def download_file(self, quality=None) -> None:
         """
         Starts the thread for downloading audio files
         :return:
         """
-        if self.select_type == 'audio':
-            if self.youtube_type == 'single_file':
-                if self.combo_quality_audio.get() == '':
-                    messagebox.showerror('Error', 'Please Select a Quality')
-                else:
-                    start_new_thread(self._thread_download_file, (None, None))
+        if self.youtube_type == 'single_file' and \
+                ((self.select_type == 'video' and self.combo_quality_video.get() == '') or
+                 (self.select_type == 'audio' and self.combo_quality_audio.get() == '')):
+            messagebox.showerror('Error', 'Please Select a Quality')
+        else:
+            files_types = {
+                'video': {
+                    'single_file': lambda event: start_new_thread(self._thread_download_file, (None, None)),
+                    'playlist': lambda event: start_new_thread(self._thread_download_file, (quality, None))
+                },
+                'audio': {
+                    'single_file': lambda event: start_new_thread(self._thread_download_file, (None, None)),
+                    'playlist': lambda event: start_new_thread(self._thread_download_file, ('highest_quality', None))
+                }
+            }
 
-            elif self.youtube_type == 'playlist':
-                start_new_thread(self._thread_download_file, ('highest_quality', None))
-
-        elif self.select_type == 'video':
-            if self.youtube_type == 'single_file':
-                if self.combo_quality_video.get() == '':
-                    messagebox.showerror('Error', 'Please Select a Quality')
-                else:
-                    start_new_thread(self._thread_download_file, (None, None))
-
-            elif self.youtube_type == 'playlist':
-                start_new_thread(self._thread_download_file, (quality, None))
+            return files_types[self.select_type][self.youtube_type](None)
 
     def _forget_frames_downloads(self) -> None:
         """
