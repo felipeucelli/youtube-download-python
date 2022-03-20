@@ -14,6 +14,7 @@ from tkinter import ttk, filedialog, messagebox
 
 from proglog import TqdmProgressBarLogger
 from pytube import YouTube, Playlist, exceptions
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 
@@ -71,7 +72,7 @@ class ListTabs:
     def _insert_list_tab(self, *args):
         """
         Insert a new column in tree view
-        :param args: Receive the value of status, format_file, duration, quality, size, path, url
+        :param args: Receive the value of status, title, format_file, duration, quality, size, path, url
         :return:
         """
         self.tree_view.insert(parent='', index=tkinter.END, iid=args[0][0],
@@ -80,7 +81,7 @@ class ListTabs:
     def _edit_list_tab(self, *args):
         """
         Edit the last column inserted in the tree view
-        :param args: Receive the value of status, format_file, duration, quality, size, path, url
+        :param args: Receive the value of status, title, format_file, duration, quality, size, path, url
         :return:
         """
         self.tree_view.item(args[0][0], values=[values for values in args[0]])
@@ -131,6 +132,10 @@ class Gui(ListTabs):
         self.youtube_type = ''
         self.link = ''
         self.duration = ''
+        self.stream_video = ''
+        self.stream_audio = ''
+        self.video_extension = ''
+        self.audio_extension = ''
         self.stop_download_status = False
         self.loading_link_verify_status = False
         self.load_list_playlist_status = False
@@ -145,8 +150,8 @@ class Gui(ListTabs):
         self.download_tab = tkinter.Frame(self.tabs, highlightthickness=0)
         self.list_tab = tkinter.Frame(self.tabs, highlightthickness=0)
 
-        self.tabs.add(self.download_tab, text="Download")
-        self.tabs.add(self.list_tab, text="List")
+        self.tabs.add(self.download_tab, text="    Download    ")
+        self.tabs.add(self.list_tab, text="    List    ")
 
         self.style_download_tab = ttk.Style(self.download_tab)
         self.style_download_tab.configure('TButton', font=('Arial', 15))
@@ -518,6 +523,8 @@ class Gui(ListTabs):
                     stream = self.youtube.streams
                     self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                     self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
+                    self.stream_video = stream.filter(progressive=True)
+                    self.stream_audio = stream.filter(only_audio=True)
                     title = f'Type: Single File\n' \
                             f'Title: {self.youtube.title}'
                     self.youtube_type = 'single_file'
@@ -629,16 +636,28 @@ class Gui(ListTabs):
             insertion['foreground'] = 'gray'
 
     @staticmethod
-    def mp4_to_mp3(mp4, mp3):
+    def to_mp4(extension, mp4) -> '.mp4 file':
         """
-        Convert mp4 file to mp3
-        :param mp4: File to be converted
+        Convert the downloaded file to mp4
+        :param extension: extension: File to be converted
+        :param mp4: Returns a file converted to mp4
+        :return:
+        """
+        extension_without_frames = VideoFileClip(extension)
+        extension_without_frames.write_videofile(mp4, verbose=False, logger=main)
+        extension_without_frames.close()
+
+    @staticmethod
+    def to_mp3(extension, mp3) -> '.mp3 file':
+        """
+        Convert the downloaded file to mp3
+        :param extension: File to be converted
         :param mp3: New Converted File Name
         :return: Returns a file converted to mp3
         """
-        mp4_without_frames = AudioFileClip(mp4)
-        mp4_without_frames.write_audiofile(mp3, verbose=False, logger=main)
-        mp4_without_frames.close()
+        extension_without_frames = AudioFileClip(extension)
+        extension_without_frames.write_audiofile(mp3, verbose=False, logger=main)
+        extension_without_frames.close()
 
     def set_progress_callback(self, percent: str):
         """
@@ -693,6 +712,8 @@ class Gui(ListTabs):
         self.label_download_status['text'] = ''
         self.label_download_progress_bar_count['text'] = ''
         self.label_download_progress_bar['value'] = 0
+        self.video_extension = ''
+        self.audio_extension = ''
 
         if self.stop_download_status:
             self.btn_stop.configure(state=tkinter.ACTIVE)
@@ -808,7 +829,7 @@ class Gui(ListTabs):
 
             return playlist
 
-    def _validation_select_file_playlist(self, *args):
+    def _validation_select_file_playlist(self, *args) -> bool and list:
         """
         Function responsible for verifying the chosen links
         :param args: None
@@ -913,8 +934,7 @@ class Gui(ListTabs):
             if self.youtube_type == 'single_file':
                 youtube = YouTube(self.link, on_progress_callback=self.progress_callback).streams.filter(
                     abr=str(self.combo_quality_audio.get()),
-                    only_audio=True,
-                    file_extension='mp4')[0].download(save_path)
+                    only_audio=True)[0].download(save_path)
 
             elif self.youtube_type == 'playlist':
                 youtube = YouTube(url, on_progress_callback=self.progress_callback) \
@@ -924,9 +944,8 @@ class Gui(ListTabs):
             if self.youtube_type == 'single_file':
                 youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                     .streams.filter(
-                    res=str(re.findall(r'^\d{3}p', self.combo_quality_video.get())[0]),
-                    progressive=True,
-                    file_extension='mp4')[0].download(save_path)
+                    res=str(self.combo_quality_video.get().split(' ')[0]),
+                    progressive=True)[0].download(save_path)
 
             elif self.youtube_type == 'playlist':
                 if quality == 'lowest_resolution':
@@ -962,51 +981,74 @@ class Gui(ListTabs):
                     self.modify_data_treeview(modification_type='edit', status='CONVERTING',
                                               quality=quality,
                                               path=save_path)
-                    self.mp4_to_mp3(str(youtube), f'{youtube.replace(".mp4", ".mp3")}')
+                    self.to_mp3(str(youtube), f'{youtube.replace(f".{self.audio_extension}", ".mp3")}')
                     os.remove(youtube)
                 except Exception as erro:
                     messagebox.showerror('Error', str(erro))
                     os.remove(youtube)
                     self.restart()
+
+            if self.select_type == 'video' and self.video_extension != 'mp4':
+                try:
+                    self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
+                    self.set_progress_callback(percent='0')
+                    self.modify_data_treeview(modification_type='edit', status='CONVERTING',
+                                              quality=quality,
+                                              path=save_path)
+                    self.to_mp4(str(youtube), f'{youtube.replace(f".{self.video_extension}", ".mp4")}')
+                    os.remove(youtube)
+                except Exception as erro:
+                    messagebox.showerror('Error', str(erro))
+                    os.remove(youtube)
+                    self.restart()
+
         except exceptions.PytubeError:
-            self.modify_data_treeview(modification_type='edit', status='FAIL',  quality=quality)
+            self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
             self.files_count_tree_view += 1
         except Exception as erro:
             messagebox.showerror('Error', str(erro))
             self.restart()
         else:
             file_size = 0
+            path = ''
             if self.select_type == 'audio':
-                file_size = os.path.getsize(youtube.replace('.mp4', '.mp3')) / 1048576
+                file_size = os.path.getsize(youtube.replace(f'.{self.audio_extension}', '.mp3')) / 1048576
+                path = youtube.replace(f'.{self.audio_extension}', '.mp3')
             elif self.select_type == 'video':
-                file_size = os.path.getsize(youtube) / 1048576
+                file_size = os.path.getsize(youtube.replace(f'.{self.video_extension}', '.mp4')) / 1048576
+                path = youtube.replace(f'.{self.video_extension}', '.mp4')
+
             file_size = f'{file_size:.2f} MB'
             self.modify_data_treeview(modification_type='edit',
                                       status='SUCCESS',
                                       quality=quality,
                                       size=file_size,
-                                      path=str(youtube))
+                                      path=str(path))
             self.files_count_tree_view += 1
             self.files_count_ok += 1
 
     def _thread_download_file(self, *args):
         """
         Download playlist audio files and videos
-        :param args: None
+        :param args: args[0] == quality
         :return:
         """
         quality = args[0]
         save_path = filedialog.askdirectory()  # Get the path selected by the user to save the file
         if save_path != '' and save_path != ():
             self._start_download()
-            # Check the file type (video or playlist) and download
+
+            # Check the file type (single_file or playlist) and download
             if self.youtube_type == 'single_file':
                 self.label_download_status['text'] = f'Downloading {self.select_type.title()}, Please Wait.'
                 self.set_progress_callback(percent='0')
+
                 if self.select_type == 'audio':
                     quality = self.combo_quality_audio.get()
+                    self.audio_extension = self.get_file_extension(self.stream_audio, quality)
                 elif self.select_type == 'video':
                     quality = self.combo_quality_video.get()
+                    self.video_extension = self.get_file_extension(self.stream_video, quality.split(' ')[0])
 
                 self._download_file_youtube(save_path=save_path, quality=quality)
 
@@ -1016,6 +1058,7 @@ class Gui(ListTabs):
                 else:
                     playlist = self._get_select_file_playlist()
                 count = 0
+
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = f'Downloading {self.select_type} Playlist, Please Wait.'
@@ -1092,6 +1135,28 @@ class Gui(ListTabs):
         return files_types[selected_type][self.youtube_type](None)
 
     @staticmethod
+    def get_file_extension(stream: str, selected: str) -> str:
+        """
+        Get the selected file extension
+        :param stream: YouTube Stream audio or video
+        :param selected: Quality selecting
+        :return: Selected file extension
+        """
+
+        pos = ''
+        for key, value in enumerate(stream):  # Scan the stream for the file with the selected quality
+            if re.findall(selected, str(value)):
+                pos = key
+                break
+        stream = stream[pos]
+        pattern = r'/[a-z0-9]+'  # Get only the file extension
+        regex = re.compile(pattern)
+
+        extension = str(regex.findall(str(stream))[0]).split('/')[1]
+
+        return extension
+
+    @staticmethod
     def get_quality(stream, file_type: str) -> list:
         """
         Get the quality of the video or audio and return it in a list to be used in the combobox
@@ -1100,14 +1165,14 @@ class Gui(ListTabs):
         :return: Returns a list of the quality and fps of the videos
         """
 
-        pattern = {'video': r'\d{3}p|\d{2}fps',  # Get Video Quality
+        pattern = {'video': r'\d{3,4}p|\d{2}fps',  # Get Video Quality
                    'audio': r'\d{2,3}kbps'  # Get Audio Quality
                    }
         pattern = pattern[file_type]
         regex = re.compile(pattern)
 
-        stream_filter = {'video': stream.filter(file_extension='mp4', progressive=True),  # Stream Video File
-                         'audio': stream.filter(file_extension='mp4', only_audio=True)  # Stream Audio file
+        stream_filter = {'video': stream.filter(progressive=True),  # Stream Video File
+                         'audio': stream.filter(only_audio=True)  # Stream Audio file
                          }
         yt = stream_filter[file_type]
         quality_list = []
@@ -1174,15 +1239,25 @@ class Main(TqdmProgressBarLogger, Gui):
 
     def callback(self, **changes):
         """
-        TqdmProgressBarLogger function
-        Every time the logger is updated, this function is called
+        Every time the logger message is updated, this function is called.
+        But we don't want messages in the terminal. So here she does nothing.
         :param changes:
+        :return: None
+        """
+        pass
+
+    def bars_callback(self, bar, attr, value, old_value=None):
+        """
+        Every time the progress of the recorder is updated, this function is called.
+        Then we capture the progress bar percentage and pass it to a tkinter widget
+        :param bar: progress bar name
+        :param attr: OrderedDict attribute that contains the current value of the progress bar
+        :param value: current bar value
+        :param old_value: None
         :return:
         """
-        if len(self.bars):
-            percentage = next(reversed(self.bars.items()))[1]['index'] / next(reversed(self.bars.items()))[1]['total']
-            percentage = str(percentage * 100).split('.')[0]
-            self.set_progress_callback(percent=percentage)
+        percentage = str((value / self.bars[bar]['total']) * 100).split('.')[0]
+        self.set_progress_callback(percent=percentage)
 
     def start_gui(self):
         """
