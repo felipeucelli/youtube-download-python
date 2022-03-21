@@ -39,7 +39,7 @@ class ListTabs:
         self.list_scrollbar_x.pack(side="bottom", fill="x")
 
         self.tree_view = ttk.Treeview(self.list_tab, height=2,
-                                      columns=('1', '2', '3', '4', '5', '6', '7', '8', '9'),
+                                      columns=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'),
                                       yscrollcommand=self.list_scrollbar_y.set,
                                       xscrollcommand=self.list_scrollbar_x.set)
         self.tree_view.heading('#0', text='')
@@ -50,7 +50,9 @@ class ListTabs:
         self.tree_view.heading(5, text='Duration', anchor=tkinter.CENTER)
         self.tree_view.heading(6, text='Quality', anchor=tkinter.CENTER)
         self.tree_view.heading(7, text='Size', anchor=tkinter.CENTER)
-        self.tree_view.heading(8, text='Path', anchor=tkinter.CENTER)
+        self.tree_view.heading(8, text='Extension', anchor=tkinter.CENTER)
+        self.tree_view.heading(9, text='Progressive', anchor=tkinter.CENTER)
+        self.tree_view.heading(10, text='Path', anchor=tkinter.CENTER)
         self.tree_view.column('#0', width=0, stretch=tkinter.NO)
         self.tree_view.column(1, width=50, minwidth=50, anchor=tkinter.CENTER)
         self.tree_view.column(2, width=130, minwidth=130, anchor=tkinter.CENTER)
@@ -59,8 +61,10 @@ class ListTabs:
         self.tree_view.column(5, width=100, minwidth=100, anchor=tkinter.CENTER)
         self.tree_view.column(6, width=150, minwidth=150, anchor=tkinter.CENTER)
         self.tree_view.column(7, width=100, minwidth=100, anchor=tkinter.CENTER)
-        self.tree_view.column(8, width=300, minwidth=300, anchor=tkinter.CENTER)
-        self.tree_view.column(9, width=0, stretch=tkinter.NO)
+        self.tree_view.column(8, width=120, minwidth=120, anchor=tkinter.CENTER)
+        self.tree_view.column(9, width=120, minwidth=120, anchor=tkinter.CENTER)
+        self.tree_view.column(10, width=300, minwidth=300, anchor=tkinter.CENTER)
+        self.tree_view.column(11, width=0, stretch=tkinter.NO)
         self.tree_view.place(x=0, y=50, height=437, width=529)
 
         # Configure scroll bars
@@ -106,7 +110,7 @@ class ListTabs:
             listbox.pack(padx=5, pady=5, ipadx=5, ipady=5)
             list_scrollbar_x.config(command=listbox.xview)
 
-            for c in range(9):
+            for c in range(11):
                 listbox.insert('end', self.tree_view.item(str(self.tree_view.selection()[0]), 'values')[c])
 
             self.tree_view.selection_remove(self.tree_view.selection())
@@ -136,6 +140,7 @@ class Gui(ListTabs):
         self.stream_audio = ''
         self.video_extension = ''
         self.audio_extension = ''
+        self.progressive = True
         self.stop_download_status = False
         self.loading_link_verify_status = False
         self.load_list_playlist_status = False
@@ -523,7 +528,7 @@ class Gui(ListTabs):
                     stream = self.youtube.streams
                     self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                     self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
-                    self.stream_video = stream.filter(progressive=True)
+                    self.stream_video = stream.filter()
                     self.stream_audio = stream.filter(only_audio=True)
                     title = f'Type: Single File\n' \
                             f'Title: {self.youtube.title}'
@@ -636,6 +641,19 @@ class Gui(ListTabs):
             insertion['foreground'] = 'gray'
 
     @staticmethod
+    def merge_audio_video(audio: str, video: str, out_file: str):
+        """
+        Merge audio in the video
+        :param audio: Full path of the audio file
+        :param video: Full path of the video file
+        :param out_file: Output file full path
+        :return:
+        """
+        video_clip = VideoFileClip(video)
+        video_clip.write_videofile(out_file, audio=audio, verbose=False, logger=main)
+        video_clip.close()
+
+    @staticmethod
     def to_mp4(extension, mp4) -> '.mp4 file':
         """
         Convert the downloaded file to mp4
@@ -739,6 +757,8 @@ class Gui(ListTabs):
                   self.duration,
                   quality,
                   size,
+                  self.video_extension if self.select_type == 'video' else self.audio_extension,
+                  str(self.progressive),
                   path,
                   self.link]
 
@@ -945,7 +965,7 @@ class Gui(ListTabs):
                 youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
                     .streams.filter(
                     res=str(self.combo_quality_video.get().split(' ')[0]),
-                    progressive=True)[0].download(save_path)
+                    progressive=self.progressive)[0].download(save_path)
 
             elif self.youtube_type == 'playlist':
                 if quality == 'lowest_resolution':
@@ -988,7 +1008,7 @@ class Gui(ListTabs):
                     os.remove(youtube)
                     self.restart()
 
-            if self.select_type == 'video' and self.video_extension != 'mp4':
+            if self.select_type == 'video' and self.video_extension != 'mp4':  # Convert the video to mp4 if it is not
                 try:
                     self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
                     self.set_progress_callback(percent='0')
@@ -1001,6 +1021,44 @@ class Gui(ListTabs):
                     messagebox.showerror('Error', str(erro))
                     os.remove(youtube)
                     self.restart()
+
+            # Download and merge audio into non-progressive videos
+            if self.select_type == 'video' and not self.progressive:
+                try:
+                    # Renames the downloaded non-progressive file, to avoid errors in the merge
+                    merge_file = youtube.replace(os.path.basename(youtube), f'Merge_{os.path.basename(youtube)}')
+                    os.rename(youtube, merge_file)
+
+                    self.set_progress_callback(percent='0')
+                    self.label_download_status['text'] = f'Downloading Audio from Video, Please Wait.'
+                    self.modify_data_treeview(modification_type='edit', status='DOWNLOADING',
+                                              quality=quality,
+                                              path=save_path)
+                    # Download an audio track
+                    audio = YouTube(self.link, on_progress_callback=self.progress_callback)\
+                        .streams.get_audio_only().download(save_path, filename='audio.mp4')
+
+                    self.modify_data_treeview(modification_type='edit', status='CONVERTING',
+                                              quality=quality,
+                                              path=save_path)
+                    self.label_download_status['text'] = f'Converting Audio from Video, Please Wait.'
+
+                    self.to_mp3(str(audio), audio.replace('.mp4', '.mp3'))  # Convert downloaded audio track to mp3
+
+                    os.remove(audio)  # Delete the mp4 audio track
+                    self.modify_data_treeview(modification_type='edit', status='MERGING',
+                                              quality=quality,
+                                              path=save_path)
+                    self.label_download_status['text'] = f'Merging Audio into Video, Please Wait.'
+
+                    self.merge_audio_video(audio=audio.replace('.mp4', '.mp3'), video=merge_file, out_file=youtube)
+
+                except Exception as erro:
+                    messagebox.showerror('Error', str(erro))
+                    self.restart()
+                else:
+                    os.remove(merge_file)
+                    os.remove(audio.replace('.mp4', '.mp3'))
 
         except exceptions.PytubeError:
             self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
@@ -1048,6 +1106,7 @@ class Gui(ListTabs):
                     self.audio_extension = self.get_file_extension(self.stream_audio, quality)
                 elif self.select_type == 'video':
                     quality = self.combo_quality_video.get()
+                    self.progressive = self.is_progressive(self.stream_video, quality.split(' ')[0])
                     self.video_extension = self.get_file_extension(self.stream_video, quality.split(' ')[0])
 
                 self._download_file_youtube(save_path=save_path, quality=quality)
@@ -1135,7 +1194,35 @@ class Gui(ListTabs):
         return files_types[selected_type][self.youtube_type](None)
 
     @staticmethod
-    def get_file_extension(stream: str, selected: str) -> str:
+    def get_stream_selected(stream: str, selected: str) -> str:
+        """
+        Get the stream with the selected quality
+        :param stream: YouTube Streams
+        :param selected: selected quality
+        :return: selected stream
+        """
+        pos = ''
+        for key, value in enumerate(stream):  # Scan the stream for the file with the selected quality
+            if re.findall(selected, str(value)):
+                pos = key
+                break
+        stream = stream[pos]
+        return stream
+
+    def is_progressive(self, stream: str, selected: str) -> bool:
+        """
+        Checks if the selected stream is progressive
+        :param stream: YouTube Streams
+        :param selected: selected quality
+        :return: boolean
+        """
+        stream = self.get_stream_selected(stream=stream, selected=selected)
+        pattern = r'True'
+        regex = re.compile(pattern)
+
+        return bool(regex.findall(str(stream)))
+
+    def get_file_extension(self, stream: str, selected: str) -> str:
         """
         Get the selected file extension
         :param stream: YouTube Stream audio or video
@@ -1143,12 +1230,8 @@ class Gui(ListTabs):
         :return: Selected file extension
         """
 
-        pos = ''
-        for key, value in enumerate(stream):  # Scan the stream for the file with the selected quality
-            if re.findall(selected, str(value)):
-                pos = key
-                break
-        stream = stream[pos]
+        stream = self.get_stream_selected(stream=stream, selected=selected)
+
         pattern = r'/[a-z0-9]+'  # Get only the file extension
         regex = re.compile(pattern)
 
@@ -1171,14 +1254,19 @@ class Gui(ListTabs):
         pattern = pattern[file_type]
         regex = re.compile(pattern)
 
-        stream_filter = {'video': stream.filter(progressive=True),  # Stream Video File
+        stream_filter = {'video': stream.filter(),  # Stream Video File
                          'audio': stream.filter(only_audio=True)  # Stream Audio file
                          }
         yt = stream_filter[file_type]
         quality_list = []
 
-        for data in yt:
-            quality_list.append(regex.findall(str(data)))
+        finder = set()
+        for key, value in enumerate(yt):
+            finder.add(str(regex.findall(str(value))))
+
+        for data in finder:
+            if data != '[]':
+                quality_list.append(regex.findall(str(data)))
         return quality_list
 
     def _select_file_type(self, file_type: str):
