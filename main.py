@@ -1008,7 +1008,8 @@ class Gui(ListTabs):
                     os.remove(youtube)
                     self.restart()
 
-            if self.select_type == 'video' and self.video_extension != 'mp4':  # Convert the video to mp4 if it is not
+            # Convert the video to mp4 if it is not
+            if self.select_type == 'video' and self.video_extension != 'mp4' and self.progressive:
                 try:
                     self.label_download_status['text'] = f'Converting {self.select_type}, Please Wait.'
                     self.set_progress_callback(percent='0')
@@ -1028,6 +1029,8 @@ class Gui(ListTabs):
                     # Renames the downloaded non-progressive file, to avoid errors in the merge
                     merge_file = youtube.replace(os.path.basename(youtube), f'Merge_{os.path.basename(youtube)}')
                     os.rename(youtube, merge_file)
+
+                    youtube = youtube.replace(f'.{self.video_extension}', '.mp4')
 
                     self.set_progress_callback(percent='0')
                     self.label_download_status['text'] = f'Downloading Audio from Video, Please Wait.'
@@ -1217,10 +1220,8 @@ class Gui(ListTabs):
         :return: boolean
         """
         stream = self.get_stream_selected(stream=stream, selected=selected)
-        pattern = r'True'
-        regex = re.compile(pattern)
 
-        return bool(regex.findall(str(stream)))
+        return bool('True' in str(stream))
 
     def get_file_extension(self, stream: str, selected: str) -> str:
         """
