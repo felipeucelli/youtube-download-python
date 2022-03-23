@@ -1037,31 +1037,23 @@ class Gui(ListTabs):
                     self.modify_data_treeview(modification_type='edit', status='DOWNLOADING',
                                               quality=quality,
                                               path=save_path)
-                    # Download an audio track
+                    # Download audio track
                     audio = YouTube(self.link, on_progress_callback=self.progress_callback)\
                         .streams.get_audio_only().download(save_path, filename='audio.mp4')
 
-                    self.modify_data_treeview(modification_type='edit', status='CONVERTING',
-                                              quality=quality,
-                                              path=save_path)
-                    self.label_download_status['text'] = f'Converting Audio from Video, Please Wait.'
-
-                    self.to_mp3(str(audio), audio.replace('.mp4', '.mp3'))  # Convert downloaded audio track to mp3
-
-                    os.remove(audio)  # Delete the mp4 audio track
                     self.modify_data_treeview(modification_type='edit', status='MERGING',
                                               quality=quality,
                                               path=save_path)
                     self.label_download_status['text'] = f'Merging Audio into Video, Please Wait.'
 
-                    self.merge_audio_video(audio=audio.replace('.mp4', '.mp3'), video=merge_file, out_file=youtube)
+                    self.merge_audio_video(audio=audio, video=merge_file, out_file=youtube)
 
                 except Exception as erro:
                     messagebox.showerror('Error', str(erro))
                     self.restart()
                 else:
                     os.remove(merge_file)
-                    os.remove(audio.replace('.mp4', '.mp3'))
+                    os.remove(audio)
 
         except exceptions.PytubeError:
             self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
