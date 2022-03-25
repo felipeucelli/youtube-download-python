@@ -1112,7 +1112,9 @@ class Gui(ListTabs):
                 else:
                     playlist = self._get_select_file_playlist()
                 count = 0
-
+                self.video_extension = 'mp4'
+                self.audio_extension = 'mp4'
+                self.progressive = True
                 for url in playlist:
                     self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
                     self.label_download_status['text'] = f'Downloading {self.select_type} Playlist, Please Wait.'
