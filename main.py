@@ -502,15 +502,18 @@ class Gui(ListTabs):
         self.search_entry_status = True
         self.list_box_search_entry.pack()
 
-        yt = Search(self.youtube_link_variable.get())
+        try:
+            yt = Search(self.youtube_link_variable.get())
 
-        for c in yt.results:
-            self.list_box_search_entry.insert('end', c.title)  # Insert the titles in the listbox
+            for c in yt.results:
+                self.list_box_search_entry.insert('end', c.title)  # Insert the titles in the listbox
 
-            # Insert title links into a list
-            self.search_link_list.append(f'https://youtube.com/watch?v={regex.findall(str(c))[0]}')
+                # Insert title links into a list
+                self.search_link_list.append(f'https://youtube.com/watch?v={regex.findall(str(c))[0]}')
 
-        os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
+            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
+        except Exception as error:
+            messagebox.showerror('Error', str(error))
 
     def _loading_link_verify(self, *args):
         """
