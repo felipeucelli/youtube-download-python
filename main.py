@@ -13,7 +13,7 @@ from _thread import start_new_thread
 from tkinter import ttk, filedialog, messagebox
 
 from proglog import TqdmProgressBarLogger
-from pytube import YouTube, Playlist, exceptions
+from pytube import YouTube, Playlist, Search, exceptions
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.audio.io.AudioFileClip import AudioFileClip
 
@@ -142,6 +142,7 @@ class Gui(ListTabs):
         self.audio_extension = ''
         self.progressive = True
         self.stop_download_status = False
+        self.search_entry_status = False
         self.loading_link_verify_status = False
         self.load_list_playlist_status = False
         self.mouse_on_youtube_entry_status = False
@@ -205,6 +206,9 @@ class Gui(ListTabs):
         self.btn_link_verify.grid(row=0, column=1, padx=5)
         self.message_youtube_title = tkinter.Message(self.frame_link, font='Arial 10', width=450)
         self.message_youtube_title.grid(row=1, columnspan=2)
+        self.list_box_search_entry = tkinter.Listbox(self.download_tab, width=87, height=19, borderwidth=0,
+                                                     highlightthickness=0, activestyle='none')
+        self.list_box_search_entry.bind('<Double-Button-1>', self.insert_entry_search)
 
         # Animation frame setup during link search
         self.frame_load_link = tkinter.Frame(self.download_tab)
@@ -474,6 +478,40 @@ class Gui(ListTabs):
                             save.writelines(f'Size: {tree_view_data[6]}\n')
                             save.writelines('------------------------------------------------------------\n')
 
+    def insert_entry_search(self, *args):
+        """
+        Insert the link in the search entry of the selected title
+        :param args: None
+        :return:
+        """
+        _none = args
+        self.youtube_link_variable.set(self.search_link_list[self.list_box_search_entry.curselection()[0]])
+        self.list_box_search_entry.pack_forget()
+        self.list_box_search_entry.delete(0, 'end')
+
+    def _search_entry(self):
+        """
+        Perform a YouTube search using the keyword
+        :return:
+        """
+        pattern = r'(?:=|\/)([0-9A-Za-z_-]{11}).*'  # Just get the YouTube link
+        regex = re.compile(pattern)
+
+        self.list_box_search_entry.delete(0, 'end')
+        self.search_link_list = []
+        self.search_entry_status = True
+        self.list_box_search_entry.pack()
+
+        yt = Search(self.youtube_link_variable.get())
+
+        for c in yt.results:
+            self.list_box_search_entry.insert('end', c.title)  # Insert the titles in the listbox
+
+            # Insert title links into a list
+            self.search_link_list.append(f'https://youtube.com/watch?v={regex.findall(str(c))[0]}')
+
+        os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
+
     def _loading_link_verify(self, *args):
         """
         Generates an animation while checking the link
@@ -533,6 +571,10 @@ class Gui(ListTabs):
                     title = f'Type: Single File\n' \
                             f'Title: {self.youtube.title}'
                     self.youtube_type = 'single_file'
+            except exceptions.RegexMatchError:
+                self._loading_link_verify_status = False
+                self.unblock_interface()
+                self._search_entry()
             except Exception as erro:
                 self._loading_link_verify_status = False
                 self.unblock_interface()
@@ -599,6 +641,8 @@ class Gui(ListTabs):
         if self.load_list_playlist_status:
             self.load_list_playlist_status = False
             self._close_list_playlist()
+        if self.search_entry_status:
+            self.list_box_search_entry.pack_forget()
 
     def return_page(self):
         """
@@ -806,7 +850,7 @@ class Gui(ListTabs):
                                                          width=72, height=10, font='Arial 10',
                                                          yscrollcommand=list_playlist_scrollbar_y.set,
                                                          xscrollcommand=list_playlist_scrollbar_x.set,
-                                                         activestyle='none')
+                                                         borderwidth=0, highlightthickness=0, activestyle='none')
             self.listbox_list_playlist.pack(padx=10, pady=10)
             list_playlist_scrollbar_y.config(command=self.listbox_list_playlist.yview)
             list_playlist_scrollbar_x.config(command=self.listbox_list_playlist.xview)
@@ -1038,7 +1082,7 @@ class Gui(ListTabs):
                                               quality=quality,
                                               path=save_path)
                     # Download audio track
-                    audio = YouTube(self.link, on_progress_callback=self.progress_callback)\
+                    audio = YouTube(self.link, on_progress_callback=self.progress_callback) \
                         .streams.get_audio_only().download(save_path, filename='audio.mp4')
 
                     self.modify_data_treeview(modification_type='edit', status='MERGING',
