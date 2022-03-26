@@ -206,9 +206,20 @@ class Gui(ListTabs):
         self.btn_link_verify.grid(row=0, column=1, padx=5)
         self.message_youtube_title = tkinter.Message(self.frame_link, font='Arial 10', width=450)
         self.message_youtube_title.grid(row=1, columnspan=2)
-        self.list_box_search_entry = tkinter.Listbox(self.download_tab, width=87, height=19, borderwidth=0,
-                                                     highlightthickness=0, activestyle='none')
+
+        self.frame_list_search_entry = tkinter.Frame(self.download_tab)
+        self.scrollbar_y_search_entry = tkinter.Scrollbar(self.frame_list_search_entry, orient='vertical')
+        self.scrollbar_y_search_entry.pack(side='right', fill='y')
+        self.scrollbar_x_search_entry = tkinter.Scrollbar(self.frame_list_search_entry, orient='horizontal')
+        self.scrollbar_x_search_entry.pack(side="bottom", fill="x")
+        self.list_box_search_entry = tkinter.Listbox(self.frame_list_search_entry, width=87, height=19, borderwidth=0,
+                                                     highlightthickness=0, activestyle='none',
+                                                     yscrollcommand=self.scrollbar_y_search_entry.set,
+                                                     xscrollcommand=self.scrollbar_x_search_entry.set)
+        self.list_box_search_entry.pack()
         self.list_box_search_entry.bind('<Double-Button-1>', self.insert_entry_search)
+        self.scrollbar_y_search_entry.config(command=self.list_box_search_entry.yview)
+        self.scrollbar_x_search_entry.config(command=self.list_box_search_entry.xview)
 
         # Animation frame setup during link search
         self.frame_load_link = tkinter.Frame(self.download_tab)
@@ -486,8 +497,8 @@ class Gui(ListTabs):
         """
         _none = args
         self.youtube_link_variable.set(self.search_link_list[self.list_box_search_entry.curselection()[0]])
-        self.list_box_search_entry.pack_forget()
         self.list_box_search_entry.delete(0, 'end')
+        self.frame_list_search_entry.pack_forget()
 
     def _search_entry(self):
         """
@@ -500,9 +511,11 @@ class Gui(ListTabs):
         self.list_box_search_entry.delete(0, 'end')
         self.search_link_list = []
         self.search_entry_status = True
-        self.list_box_search_entry.pack()
+
+        self.frame_list_search_entry.pack()
 
         try:
+            self.block_interface()
             yt = Search(self.youtube_link_variable.get())
 
             for c in yt.results:
@@ -512,8 +525,11 @@ class Gui(ListTabs):
                 self.search_link_list.append(f'https://youtube.com/watch?v={regex.findall(str(c))[0]}')
 
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
+            self.unblock_interface()
         except Exception as error:
             messagebox.showerror('Error', str(error))
+            self.unblock_interface()
+            self.reset_interface()
 
     def _loading_link_verify(self, *args):
         """
@@ -589,6 +605,7 @@ class Gui(ListTabs):
                     elif self.select_type == 'video':
                         self.frame_video_download.pack_forget()
             else:
+                self.search_entry_status = False
                 self._loading_link_verify_status = False
                 self.unblock_interface()
                 self.message_youtube_title['text'] = title
@@ -645,7 +662,7 @@ class Gui(ListTabs):
             self.load_list_playlist_status = False
             self._close_list_playlist()
         if self.search_entry_status:
-            self.list_box_search_entry.pack_forget()
+            self.frame_list_search_entry.pack_forget()
 
     def return_page(self):
         """
