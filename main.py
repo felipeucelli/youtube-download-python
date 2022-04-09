@@ -1326,6 +1326,7 @@ class Gui(ListTabs):
         for data in finder:
             if data != '[]':
                 quality_list.append(regex.findall(str(data)))
+        quality_list = sorted(quality_list, reverse=True)
         return quality_list
 
     def _select_file_type(self, file_type: str):
