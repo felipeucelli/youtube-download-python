@@ -146,6 +146,7 @@ class Gui(ListTabs):
         self.loading_link_verify_status = False
         self.load_list_playlist_status = False
         self.mouse_on_youtube_entry_status = False
+        self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
         self.select_file_playlist = tkinter.StringVar()
@@ -539,21 +540,21 @@ class Gui(ListTabs):
         """
         _none = args
 
-        # while self._loading_link_verify_status:
+        # while self.loading_link_verify_status:
         #    bars = ('|', '/', '-', '\\')
         #    r = 4
         #    for i in range(r):
         #        self.progressbar_link_verify['text'] = bars[i]
         #        time.sleep(0.20)
-        #        if not self._loading_link_verify_status:
+        #        if not self.loading_link_verify_status:
         #            break
         # self.frame_load_link.pack_forget()
 
         self.progressbar_link_verify['value'] = 0
-        while self._loading_link_verify_status:
+        while self.loading_link_verify_status:
             self.progressbar_link_verify['value'] += 1
             time.sleep(0.01)
-            if not self._loading_link_verify_status:
+            if not self.loading_link_verify_status:
                 break
 
         self.frame_load_link.pack_forget()
@@ -568,7 +569,7 @@ class Gui(ListTabs):
         self.message_youtube_title['text'] = ''
         self.select_type = ''
         if self.youtube_link_variable.get() != '' and self.youtube_link_variable.get() != 'Type here a youtube link':
-            self._loading_link_verify_status = True
+            self.loading_link_verify_status = True
             self.frame_load_link.pack(pady=100)
             start_new_thread(self._loading_link_verify, (None, None))
             self.block_interface()
@@ -590,23 +591,22 @@ class Gui(ListTabs):
                     title = f'Type: Single File\n' \
                             f'Title: {self.youtube.title}'
                     self.youtube_type = 'single_file'
-            except exceptions.RegexMatchError:
-                self._loading_link_verify_status = False
+            except exceptions.RegexMatchError as error:
+                if 'regex_search' in str(error):
+                    self.loading_link_verify_status = False
+                    self.unblock_interface()
+                    self._search_entry()
+                else:
+                    self.unblock_interface()
+                    self.reset_interface()
+                    messagebox.showerror('Error', str(error))
+            except Exception as error:
                 self.unblock_interface()
-                self._search_entry()
-            except Exception as erro:
-                self._loading_link_verify_status = False
-                self.unblock_interface()
-                messagebox.showerror('Error', str(erro))
-                self.frame_file_type.pack_forget()
-                if self.select_type != '':
-                    if self.select_type == 'audio':
-                        self.frame_audio_download.pack_forget()
-                    elif self.select_type == 'video':
-                        self.frame_video_download.pack_forget()
+                self.reset_interface()
+                messagebox.showerror('Error', str(error))
             else:
                 self.search_entry_status = False
-                self._loading_link_verify_status = False
+                self.loading_link_verify_status = False
                 self.unblock_interface()
                 self.message_youtube_title['text'] = title
                 self.frame_file_type.pack(pady=50)
@@ -658,6 +658,8 @@ class Gui(ListTabs):
         self.select_file_playlist.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
+        if self.loading_link_verify_status:
+            self.loading_link_verify_status = False
         if self.load_list_playlist_status:
             self.load_list_playlist_status = False
             self._close_list_playlist()
@@ -951,7 +953,9 @@ class Gui(ListTabs):
 
             data = []
             if flag:
-                find = re.findall(r'[\d]+|[\-]', select)
+                pattern = r'[\d]+|[\-]'
+                regex = re.compile(pattern)
+                find = regex.findall(str(select))
 
                 # Adds a sequence of numbers when using "-"
                 for k, v in enumerate(find):
@@ -1067,8 +1071,8 @@ class Gui(ListTabs):
                                               path=save_path)
                     self.to_mp3(str(youtube), f'{youtube.replace(f".{self.audio_extension}", ".mp3")}')
                     os.remove(youtube)
-                except Exception as erro:
-                    messagebox.showerror('Error', str(erro))
+                except Exception as error:
+                    messagebox.showerror('Error', str(error))
                     os.remove(youtube)
                     self.restart()
 
@@ -1082,8 +1086,8 @@ class Gui(ListTabs):
                                               path=save_path)
                     self.to_mp4(str(youtube), f'{youtube.replace(f".{self.video_extension}", ".mp4")}')
                     os.remove(youtube)
-                except Exception as erro:
-                    messagebox.showerror('Error', str(erro))
+                except Exception as error:
+                    messagebox.showerror('Error', str(error))
                     os.remove(youtube)
                     self.restart()
 
@@ -1112,8 +1116,8 @@ class Gui(ListTabs):
 
                     self.merge_audio_video(audio=audio, video=merge_file, out_file=youtube)
 
-                except Exception as erro:
-                    messagebox.showerror('Error', str(erro))
+                except Exception as error:
+                    messagebox.showerror('Error', str(error))
                     self.restart()
                 else:
                     os.remove(merge_file)
@@ -1122,8 +1126,8 @@ class Gui(ListTabs):
         except exceptions.PytubeError:
             self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
             self.files_count_tree_view += 1
-        except Exception as erro:
-            messagebox.showerror('Error', str(erro))
+        except Exception as error:
+            messagebox.showerror('Error', str(error))
             self.restart()
         else:
             file_size = 0
