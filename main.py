@@ -1317,20 +1317,26 @@ class Gui(ListTabs):
         pattern = pattern[file_type]
         regex = re.compile(pattern)
 
-        stream_filter = {'video': stream.filter(),  # Stream Video File
-                         'audio': stream.filter(only_audio=True)  # Stream Audio file
+        stream_filter = {'video': stream.filter().order_by('resolution').desc(),  # Stream Video File
+                         'audio': stream.filter(only_audio=True).order_by('abr').desc()  # Stream Audio file
                          }
         yt = stream_filter[file_type]
         quality_list = []
 
-        finder = set()
+        # Get only quality from stream
+        finder = []
         for key, value in enumerate(yt):
-            finder.add(str(regex.findall(str(value))))
+            finder.append(str(regex.findall(str(value))))
 
+        # Remove duplicate quality
+        for k, v in enumerate(finder):
+            while finder.count(v) > 1:
+                finder.remove(v)
+
+        # Extract the quality from the list
         for data in finder:
             if data != '[]':
                 quality_list.append(regex.findall(str(data)))
-        quality_list = sorted(quality_list, reverse=True)
         return quality_list
 
     def _select_file_type(self, file_type: str):
