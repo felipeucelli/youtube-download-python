@@ -531,7 +531,7 @@ class Gui(ListTabs):
             os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
             self.unblock_interface()
         except Exception as error:
-            messagebox.showerror('Error', str(error))
+            messagebox.showerror('Error', f'Pytube: {str(error)}')
             self.unblock_interface()
             self.reset_interface()
 
@@ -602,11 +602,11 @@ class Gui(ListTabs):
                 else:
                     self.unblock_interface()
                     self.reset_interface()
-                    messagebox.showerror('Error', str(error))
+                    messagebox.showerror('Error', f'Pytube: {str(error)}')
             except Exception as error:
                 self.unblock_interface()
                 self.reset_interface()
-                messagebox.showerror('Error', str(error))
+                messagebox.showerror('Error', f'Pytube: {str(error)}')
             else:
                 self.search_entry_status = False
                 self.loading_link_verify_status = False
@@ -723,7 +723,7 @@ class Gui(ListTabs):
         video_clip.close()
 
     @staticmethod
-    def to_mp4(extension, mp4) -> '.mp4 file':
+    def to_mp4(extension: str, mp4: str):
         """
         Convert the downloaded file to mp4
         :param extension: extension: File to be converted
@@ -735,7 +735,7 @@ class Gui(ListTabs):
         extension_without_frames.close()
 
     @staticmethod
-    def to_mp3(extension, mp3) -> '.mp3 file':
+    def to_mp3(extension: str, mp3: str):
         """
         Convert the downloaded file to mp3
         :param extension: File to be converted
@@ -933,15 +933,15 @@ class Gui(ListTabs):
             :return: None
             """
             types = {
-                'video': lambda event: (self.btn_highest_resolution.configure(state=state),
-                                        self.btn_lowest_resolution.configure(state=state),
-                                        self.entry_select_video_playlist.configure(foreground=fg)),
+                'video': lambda: (self.btn_highest_resolution.configure(state=state),
+                                  self.btn_lowest_resolution.configure(state=state),
+                                  self.entry_select_video_playlist.configure(foreground=fg)),
 
-                'audio': lambda event: (self.btn_audio_file.configure(state=state),
-                                        self.entry_select_audio_playlist.configure(foreground=fg))
+                'audio': lambda: (self.btn_audio_file.configure(state=state),
+                                  self.entry_select_audio_playlist.configure(foreground=fg))
             }
 
-            return types[self.select_type](None)
+            return types[self.select_type]()
 
         _none = args
         if self.select_file_playlist.get() != '':
@@ -972,8 +972,9 @@ class Gui(ListTabs):
                         for c in range(int(find[k - 1]), int(find[k]), step):
                             find.insert(i, c)
                             i += 1
+                            if len(find) > self.len_playlist_link * 2:
+                                break
                         find.pop(k - 1)
-
                 # Turns all list items to integers
                 swap_int = []
                 for i in find:

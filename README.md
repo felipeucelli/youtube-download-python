@@ -13,13 +13,17 @@ Installing dependencies and running the application
 
 ### Installing requirements
 ```bash
-$ pip3 install -r requirements.txt
+$ pip install -r requirements.txt
 ```
 
 ### Running the application
 ```bash
-$ python3 main.py
+$ python main.py
 ```
+
+## FAQ
+### Error trying to download or search for a YouTube link
+This program uses the [Pytube](https://github.com/pytube/pytube) library to search and download YouTube links. If you have related problems, you can search for the solution in an [issue](https://github.com/pytube/pytube/issues) in the library repository, or you can open an issue here.
 
 ## Prerequisites
 * [Python3](https://www.python.org)
