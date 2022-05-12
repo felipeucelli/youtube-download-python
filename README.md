@@ -8,6 +8,13 @@ You can download single videos or entire playlists. In addition to being able to
 
 Fully compatible with Windows and Linux systems (MacOS not tested).
 
+## Features
+* Support for downloading all available video and audio qualities
+* Support for downloading the complete playlist
+* Ability to select a range from a playlist
+* Keyword search support
+* View and export a detailed list of downloaded files
+
 ## Quickstart
 Installing dependencies and running the application
 
