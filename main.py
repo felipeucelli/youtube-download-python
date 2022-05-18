@@ -503,6 +503,7 @@ class Gui(ListTabs):
         _none = args
         self.youtube_link_variable.set(self.search_link_list[self.list_box_search_entry.curselection()[0]])
         self.list_box_search_entry.delete(0, 'end')
+        self.search_link_list.clear()
         self.frame_list_search_entry.pack_forget()
 
     def search_entry(self):
