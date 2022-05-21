@@ -8,10 +8,15 @@ import os
 import re
 import sys
 import time
+import math
 import tkinter
+import subprocess
+from html import unescape
 from _thread import start_new_thread
+import xml.etree.ElementTree as ElementTree
 from tkinter import ttk, filedialog, messagebox, TclError
 
+from imageio_ffmpeg import get_ffmpeg_exe
 from proglog import TqdmProgressBarLogger
 from pytube import YouTube, Playlist, Search, exceptions
 from moviepy.video.io.VideoFileClip import VideoFileClip
@@ -42,29 +47,21 @@ class ListTabs:
                                       columns=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'),
                                       yscrollcommand=self.list_scrollbar_y.set,
                                       xscrollcommand=self.list_scrollbar_x.set)
+        config_tree_view = {
+            'heading': ['N', 'Status', 'Title', 'Format', 'Duration', ' Quality', 'Size', 'Extension',
+                             'Progressive', 'path'],
+            'column': [50, 130, 250, 100, 100, 150, 100, 120, 120, 300]
+        }
         self.tree_view.heading('#0', text='')
-        self.tree_view.heading(1, text='N', anchor=tkinter.CENTER)
-        self.tree_view.heading(2, text='Status', anchor=tkinter.CENTER)
-        self.tree_view.heading(3, text='Title', anchor=tkinter.CENTER)
-        self.tree_view.heading(4, text='Format', anchor=tkinter.CENTER)
-        self.tree_view.heading(5, text='Duration', anchor=tkinter.CENTER)
-        self.tree_view.heading(6, text='Quality', anchor=tkinter.CENTER)
-        self.tree_view.heading(7, text='Size', anchor=tkinter.CENTER)
-        self.tree_view.heading(8, text='Extension', anchor=tkinter.CENTER)
-        self.tree_view.heading(9, text='Progressive', anchor=tkinter.CENTER)
-        self.tree_view.heading(10, text='Path', anchor=tkinter.CENTER)
+        for c in range(len(config_tree_view['heading'])):
+            self.tree_view.heading(c + 1, text=config_tree_view['heading'][c], anchor=tkinter.CENTER)
         self.tree_view.column('#0', width=0, stretch=tkinter.NO)
-        self.tree_view.column(1, width=50, minwidth=50, anchor=tkinter.CENTER)
-        self.tree_view.column(2, width=130, minwidth=130, anchor=tkinter.CENTER)
-        self.tree_view.column(3, width=250, minwidth=250, anchor=tkinter.CENTER)
-        self.tree_view.column(4, width=100, minwidth=100, anchor=tkinter.CENTER)
-        self.tree_view.column(5, width=100, minwidth=100, anchor=tkinter.CENTER)
-        self.tree_view.column(6, width=150, minwidth=150, anchor=tkinter.CENTER)
-        self.tree_view.column(7, width=100, minwidth=100, anchor=tkinter.CENTER)
-        self.tree_view.column(8, width=120, minwidth=120, anchor=tkinter.CENTER)
-        self.tree_view.column(9, width=120, minwidth=120, anchor=tkinter.CENTER)
-        self.tree_view.column(10, width=300, minwidth=300, anchor=tkinter.CENTER)
-        self.tree_view.column(11, width=0, stretch=tkinter.NO)
+
+        for c in range(len(config_tree_view['column'])):
+            self.tree_view.column(c + 1, width=config_tree_view['column'][c], minwidth=config_tree_view['column'][c],
+                                  anchor=tkinter.CENTER)
+        self.tree_view.column(len(config_tree_view['column']) + 1, width=0, stretch=tkinter.NO)
+
         self.tree_view.place(x=0, y=50, height=437, width=529)
 
         # Configure scroll bars
@@ -258,6 +255,12 @@ class Gui(ListTabs):
         self.label_combo_video_select.pack(pady=5)
         self.combo_quality_video = ttk.Combobox(self.frame_video_download, font='Arial 15', state='readonly')
         self.combo_quality_video.pack()
+
+        self.label_caption = tkinter.Label(self.frame_video_download, font='Arial 10', text='Subtitle:')
+        self.label_caption.pack(pady=5)
+        self.combo_subtitle = ttk.Combobox(self.frame_video_download, font='Arial 15', state='readonly')
+        self.combo_subtitle.pack()
+
         self.btn_video_download = ttk.Button(self.frame_video_download, text='Download', command=self.download_file)
         self.btn_video_download.bind('<Return>', lambda event: self.download_file())
         self.btn_video_download.pack(pady=15)
@@ -590,6 +593,7 @@ class Gui(ListTabs):
                     stream = self.youtube.streams
                     self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                     self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
+                    self.combo_subtitle['values'] = self.get_subtitle_code()
                     self.stream_video = stream.filter()
                     self.stream_audio = stream.filter(only_audio=True)
                     title = f'Type: Single File\n' \
@@ -659,6 +663,7 @@ class Gui(ListTabs):
             self.frame_file_type.pack_forget()
         self.combo_quality_video.set('')
         self.combo_quality_audio.set('')
+        self.combo_subtitle.set('')
         self.select_file_playlist.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
@@ -680,6 +685,8 @@ class Gui(ListTabs):
             self.combo_quality_audio.set('')
         if self.combo_quality_video.get() != '':
             self.combo_quality_video.set('')
+        if self.combo_subtitle.get() != '':
+            self.combo_subtitle.set('')
         self.frame_file_type.pack(pady=50)
         self.btn_return.configure(state=tkinter.DISABLED)
 
@@ -836,6 +843,111 @@ class Gui(ListTabs):
             self.insert_list_tab(values)
         elif modification_type == 'edit':
             self.edit_list_tab(values)
+
+    @staticmethod
+    def float_to_srt_time_format(d: float) -> str:  # pytube function
+        """Convert decimal durations into proper srt format.
+
+        :rtype: str
+        :returns:
+            SubRip Subtitle (str) formatted time duration.
+
+        float_to_srt_time_format(3.89) -> '00:00:03,890'
+        """
+        fraction, whole = math.modf(d)
+        time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
+        ms = f"{fraction:.3f}".replace("0.", "")
+        return time_fmt + ms
+
+    def xml_caption_to_srt(self, xml_captions: str) -> str:  # pytube function
+        """Convert xml caption tracks to "SubRip Subtitle (srt)".
+
+        :param str xml_captions:
+        XML formatted caption tracks.
+        """
+        segments = []
+        root = ElementTree.fromstring(xml_captions)
+        i = 0
+        for child in list(root.iter("body"))[0]:
+            if child.tag == 'p':
+                caption = ''
+                if len(list(child)) == 0:
+                    # instead of 'continue'
+                    caption = child.text
+                for s in list(child):
+                    if s.tag == 's':
+                        caption += ' ' + s.text
+                caption = unescape(caption.replace("\n", " ").replace("  ", " "), )
+                try:
+                    duration = float(child.attrib["d"]) / 1000.0
+                except KeyError:
+                    duration = 0.0
+                start = float(child.attrib["t"]) / 1000.0
+                end = start + duration
+                sequence_number = i + 1  # convert from 0-indexed to 1.
+                line = "{seq}\n{start} --> {end}\n{text}\n".format(
+                    seq=sequence_number,
+                    start=self.float_to_srt_time_format(start),
+                    end=self.float_to_srt_time_format(end),
+                    text=caption,
+                )
+                segments.append(line)
+                i += 1
+        return "\n".join(segments).strip()
+
+    def get_subtitle_code(self) -> list:
+        """
+        Get the subtitle code and return it in a list
+        :return: Returns a list of available subtitle codes
+        """
+        pattern = r'code=\"[a-zA-Z]+(?:-[a-zA-Z]+)?\"'  # Get the subtitle codes, example output: code="en"
+        regex = re.compile(pattern)
+        raw_caption_code = regex.findall(str(self.youtube.caption_tracks))
+
+        caption_code = ['NONE']
+        for c in raw_caption_code:
+            caption_code.append(c.split('"')[1])
+
+        return caption_code
+
+    def insert_subtitle(self, save_path, video_path):
+        """
+        Convert xml subtitle to srt, and with ffmpeg convert srt to ass and add to video
+        :param save_path: Path where the video was saved
+        :param video_path: Full path with video name
+        :return:
+        """
+        video_path = video_path.replace(f'.{self.video_extension}', '.mp4')
+        selected_caption = self.youtube.captions[self.combo_subtitle.get()]
+
+        # Convert xml to srt using modified pytube function
+        srt = self.xml_caption_to_srt(selected_caption.xml_captions)
+
+        srt_file_path = f'{save_path}/subtitle.srt'
+
+        with open(srt_file_path, 'a', encoding='utf-8') as file:
+            file.write(srt)
+
+        ffmpeg_path = f'{get_ffmpeg_exe()}'  # Get the ffmpeg path
+
+        if os.name != 'nt':
+            ffmpeg = ffmpeg_path.split('/')[-1]
+            ffmpeg_path = ffmpeg_path.replace(ffmpeg, f'./{ffmpeg}')
+
+        else:
+            srt_file_path = srt_file_path.replace('C:', 'c\\:')
+
+        os.rename(video_path, f'{save_path}/add_subtitle.mp4')
+
+        path_in_file = f'{save_path}/add_subtitle.mp4'
+
+        try:
+            subprocess.run([ffmpeg_path, '-i', path_in_file, '-vf', f"subtitles='{srt_file_path}'", video_path])
+            os.remove(f'{save_path}/subtitle.srt')
+            os.remove(f'{save_path}/add_subtitle.mp4')
+        except Exception as error:
+            messagebox.showerror('Error', str(error))
+            self.restart()
 
     def close_list_playlist(self):
         """
@@ -1127,6 +1239,13 @@ class Gui(ListTabs):
                 else:
                     os.remove(merge_file)
                     os.remove(audio)
+            if self.select_type == 'video' and self.combo_subtitle.get() != 'NONE' and self.combo_subtitle.get() != '':
+                try:
+                    self.label_download_status['text'] = f'Adding Subtitle, Please Wait.'
+                    self.insert_subtitle(save_path=save_path, video_path=youtube)
+                except Exception as error:
+                    messagebox.showerror('Error', str(error))
+                    self.restart()
 
         except exceptions.PytubeError:
             self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
