@@ -736,7 +736,11 @@ class Gui(ListTabs):
         :param mp3: New Converted File Name
         :return: Returns a file converted to mp3
         """
-        command = [self.ffmpeg_path, '-i', extension, mp3]
+        if self.youtube_type == 'single_file':
+            bit_rate = self.combo_quality_audio.get().split('b')[0]
+            command = [self.ffmpeg_path, '-i', extension, '-b:a', bit_rate, mp3]
+        else:
+            command = [self.ffmpeg_path, '-i', extension,  mp3]
 
         self.run_ffmpeg(command=command)
 
