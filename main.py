@@ -10,17 +10,14 @@ import sys
 import time
 import math
 import tkinter
-import subprocess
 from html import unescape
 from _thread import start_new_thread
 import xml.etree.ElementTree as ElementTree
 from tkinter import ttk, filedialog, messagebox, TclError
 
 from imageio_ffmpeg import get_ffmpeg_exe
-from proglog import TqdmProgressBarLogger
+from ffmpeg_progress_yield import FfmpegProgress
 from pytube import YouTube, Playlist, Search, exceptions
-from moviepy.video.io.VideoFileClip import VideoFileClip
-from moviepy.audio.io.AudioFileClip import AudioFileClip
 
 
 class ListTabs:
@@ -44,13 +41,13 @@ class ListTabs:
         self.list_scrollbar_x.pack(side="bottom", fill="x")
 
         self.tree_view = ttk.Treeview(self.list_tab, height=2,
-                                      columns=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'),
+                                      columns=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'),
                                       yscrollcommand=self.list_scrollbar_y.set,
                                       xscrollcommand=self.list_scrollbar_x.set)
         config_tree_view = {
             'heading': ['N', 'Status', 'Title', 'Format', 'Duration', ' Quality', 'Size', 'Extension',
-                             'Progressive', 'path'],
-            'column': [50, 130, 250, 100, 100, 150, 100, 120, 120, 300]
+                        'Progressive', 'Subtitle', 'path'],
+            'column': [50, 130, 250, 100, 100, 150, 100, 120, 120, 120, 300]
         }
         self.tree_view.heading('#0', text='')
         for c in range(len(config_tree_view['heading'])):
@@ -107,7 +104,7 @@ class ListTabs:
             listbox.pack(padx=5, pady=5, ipadx=5, ipady=5)
             list_scrollbar_x.config(command=listbox.xview)
 
-            for c in range(11):
+            for c in range(12):
                 listbox.insert('end', self.tree_view.item(str(self.tree_view.selection()[0]), 'values')[c])
 
             self.tree_view.selection_remove(self.tree_view.selection())
@@ -717,42 +714,31 @@ class Gui(ListTabs):
             insertion.insert(0, msg)
             insertion['foreground'] = 'gray'
 
-    @staticmethod
-    def merge_audio_video(audio: str, video: str, out_file: str):
-        """
-        Merge audio in the video
-        :param audio: Full path of the audio file
-        :param video: Full path of the video file
-        :param out_file: Output file full path
-        :return:
-        """
-        video_clip = VideoFileClip(video)
-        video_clip.write_videofile(out_file, audio=audio, verbose=False, logger=main)
-        video_clip.close()
-
-    @staticmethod
-    def to_mp4(extension: str, mp4: str):
+    def to_mp4(self, video: str, out_file: str, audio=None):
         """
         Convert the downloaded file to mp4
-        :param extension: extension: File to be converted
-        :param mp4: Returns a file converted to mp4
+        :param audio: Full path of the audio file
+        :param video: extension: File to be converted
+        :param out_file: Returns a file converted to mp4
         :return:
         """
-        extension_without_frames = VideoFileClip(extension)
-        extension_without_frames.write_videofile(mp4, verbose=False, logger=main)
-        extension_without_frames.close()
+        if audio:
+            command = [self.ffmpeg_path, '-i', audio, '-i', video, '-c:v', 'copy', out_file]
+        else:
+            command = [self.ffmpeg_path, '-i', video, '-c:v', 'copy', out_file]
 
-    @staticmethod
-    def to_mp3(extension: str, mp3: str):
+        self.run_ffmpeg(command=command)
+
+    def to_mp3(self, extension: str, mp3: str):
         """
         Convert the downloaded file to mp3
         :param extension: File to be converted
         :param mp3: New Converted File Name
         :return: Returns a file converted to mp3
         """
-        extension_without_frames = AudioFileClip(extension)
-        extension_without_frames.write_audiofile(mp3, verbose=False, logger=main)
-        extension_without_frames.close()
+        command = [self.ffmpeg_path, '-i', extension, mp3]
+
+        self.run_ffmpeg(command=command)
 
     def set_progress_callback(self, percent: str):
         """
@@ -836,6 +822,7 @@ class Gui(ListTabs):
                   size,
                   self.video_extension if self.select_type == 'video' else self.audio_extension,
                   str(self.progressive),
+                  'NONE' if self.combo_subtitle.get() == '' else self.combo_subtitle.get(),
                   path,
                   self.link]
 
@@ -843,6 +830,33 @@ class Gui(ListTabs):
             self.insert_list_tab(values)
         elif modification_type == 'edit':
             self.edit_list_tab(values)
+
+    def run_ffmpeg(self, command: list):
+        """
+        Run the ffmpeg binary and get stdout to generate a progress bar using the ffmpeg_progress_yield library
+        :param command: List containing the parameters to be passed to ffmpeg
+        :return:
+        """
+        try:
+            ffmpeg = FfmpegProgress(command)
+            for progress in ffmpeg.run_command_with_progress():
+                self.set_progress_callback(str(progress))
+        except Exception as error:
+            messagebox.showerror('Error', str(error))
+            self.restart()
+
+    @property
+    def ffmpeg_path(self) -> str:
+        """
+        Get the ffmpeg binary and adapt it to linux and Windows systems
+        :return: Returns the full path of the binary
+        """
+        path = f'{get_ffmpeg_exe()}'
+        if os.name != 'nt':
+            ffmpeg = path.split('/')[-1]
+            path = path.replace(ffmpeg, f'./{ffmpeg}')
+
+        return path
 
     @staticmethod
     def float_to_srt_time_format(d: float) -> str:  # pytube function
@@ -910,14 +924,12 @@ class Gui(ListTabs):
 
         return caption_code
 
-    def insert_subtitle(self, save_path, video_path):
+    def get_srt_file(self, save_path: str) -> str:
         """
-        Convert xml subtitle to srt, and with ffmpeg convert srt to ass and add to video
-        :param save_path: Path where the video was saved
-        :param video_path: Full path with video name
-        :return:
+        Convert xml subtitle file to srt and return full path
+        :param save_path: save path of video
+        :return: Returns the full path of the subtitle.srt file
         """
-        video_path = video_path.replace(f'.{self.video_extension}', '.mp4')
         selected_caption = self.youtube.captions[self.combo_subtitle.get()]
 
         # Convert xml to srt using modified pytube function
@@ -928,21 +940,29 @@ class Gui(ListTabs):
         with open(srt_file_path, 'a', encoding='utf-8') as file:
             file.write(srt)
 
-        ffmpeg_path = f'{get_ffmpeg_exe()}'  # Get the ffmpeg path
+        return srt_file_path
 
-        if os.name != 'nt':
-            ffmpeg = ffmpeg_path.split('/')[-1]
-            ffmpeg_path = ffmpeg_path.replace(ffmpeg, f'./{ffmpeg}')
+    def insert_subtitle(self, save_path, video_path):
+        """
+        Convert xml subtitle to srt, and with ffmpeg convert srt to ass and add to video
+        :param save_path: Path where the video was saved
+        :param video_path: Full path with video name
+        :return:
+        """
+        video_path = video_path.replace(f'.{self.video_extension}', '.mp4')
 
-        else:
+        srt_file_path = self.get_srt_file(save_path=save_path)
+
+        if os.name == 'nt':
             srt_file_path = srt_file_path.replace('C:', 'c\\:')
 
         os.rename(video_path, f'{save_path}/add_subtitle.mp4')
-
         path_in_file = f'{save_path}/add_subtitle.mp4'
 
+        command = [self.ffmpeg_path, '-i', path_in_file, '-vf', f"subtitles='{srt_file_path}'", video_path]
+
         try:
-            subprocess.run([ffmpeg_path, '-i', path_in_file, '-vf', f"subtitles='{srt_file_path}'", video_path])
+            self.run_ffmpeg(command=command)
             os.remove(f'{save_path}/subtitle.srt')
             os.remove(f'{save_path}/add_subtitle.mp4')
         except Exception as error:
@@ -1231,7 +1251,7 @@ class Gui(ListTabs):
                                               path=save_path)
                     self.label_download_status['text'] = f'Merging Audio into Video, Please Wait.'
 
-                    self.merge_audio_video(audio=audio, video=merge_file, out_file=youtube)
+                    self.to_mp4(video=merge_file, out_file=youtube, audio=audio)
 
                 except Exception as error:
                     messagebox.showerror('Error', str(error))
@@ -1513,40 +1533,12 @@ class Gui(ListTabs):
         self.root.mainloop()
 
 
-class Main(TqdmProgressBarLogger, Gui):
-    """
-    The moviepy library doesn't have a native write_audiofile callback function,
-    so Proglog.TqdmProgressBarLogger is used to capture the progress bar
-    """
-
-    def callback(self, **changes):
-        """
-        Every time the logger message is updated, this function is called.
-        But we don't want messages in the terminal. So here she does nothing.
-        :param changes:
-        :return: None
-        """
-        pass
-
-    def bars_callback(self, bar, attr, value, old_value=None):
-        """
-        Every time the progress of the recorder is updated, this function is called.
-        Then we capture the progress bar percentage and pass it to a tkinter widget
-        :param bar: progress bar name
-        :param attr: OrderedDict attribute that contains the current value of the progress bar
-        :param value: current bar value
-        :param old_value: None
-        :return:
-        """
-        percentage = str((value / self.bars[bar]['total']) * 100).split('.')[0]
-        self.set_progress_callback(percent=percentage)
-
+class Main(Gui):
     def start_gui(self):
         """
         Start the graphical interface
         :return:
         """
-        Gui.__init__(self)
         self.start_mainloop()
 
 

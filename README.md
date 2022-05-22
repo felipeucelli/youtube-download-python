@@ -2,7 +2,7 @@
 A GUI that downloads videos from YouTube.
 
 ## Description
-This application uses the pytube library to download from YouTube, and the moviepy library to convert mp4 files to mp3.
+This application uses the pytube library to download from YouTube and the ffmpeg binary to manipulate the video and audio streams.
 
 You can download single videos or entire playlists. In addition to being able to choose between downloading the video or just the audio.
 
@@ -11,6 +11,7 @@ Fully compatible with Windows and Linux systems (MacOS not tested).
 ## Features
 * Support for downloading all available video and audio qualities
 * Support for downloading the complete playlist
+* Ability to download and merge subtitles into videos
 * Ability to select a range from a playlist
 * Keyword search support
 * View and export a detailed list of downloaded files
@@ -35,6 +36,6 @@ This program uses the [Pytube](https://github.com/pytube/pytube) library to sear
 ## Prerequisites
 * [Python3](https://www.python.org)
 * [Pytube](https://pytube.io/en/latest/)
-* [Moviepy](https://zulko.github.io/moviepy/)
-* [Proglog](https://github.com/Edinburgh-Genome-Foundry/Proglog)
+* [Imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg)
+* [ffmpeg_progress_yield](https://github.com/slhck/ffmpeg-progress-yield)
 * [Tkinter](https://docs.python.org/3/library/tkinter.html)
