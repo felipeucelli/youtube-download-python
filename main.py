@@ -1274,9 +1274,14 @@ class Gui(ListTabs):
         except exceptions.PytubeError:
             self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
             self.files_count_tree_view += 1
+
         except Exception as error:
-            messagebox.showerror('Error', str(error))
-            self.restart()
+            if 'streamingData' in str(error):
+                self.modify_data_treeview(modification_type='edit', status='FAIL', quality=quality)
+                self.files_count_tree_view += 1
+            else:
+                messagebox.showerror('Error', str(error))
+                self.restart()
         else:
             file_size = 0
             path = ''
