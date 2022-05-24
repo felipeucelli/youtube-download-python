@@ -723,9 +723,9 @@ class Gui(ListTabs):
         :return:
         """
         if audio:
-            command = [self.ffmpeg_path, '-i', audio, '-i', video, '-c:v', 'copy', out_file]
+            command = [self.ffmpeg_path, '-y', '-i', audio, '-i', video, '-c:v', 'copy', out_file]
         else:
-            command = [self.ffmpeg_path, '-i', video, '-c:v', 'copy', out_file]
+            command = [self.ffmpeg_path, '-y', '-i', video, '-c:v', 'copy', out_file]
 
         self.run_ffmpeg(command=command)
 
@@ -738,9 +738,9 @@ class Gui(ListTabs):
         """
         if self.youtube_type == 'single_file':
             bit_rate = self.combo_quality_audio.get().split('b')[0]
-            command = [self.ffmpeg_path, '-i', extension, '-b:a', bit_rate, mp3]
+            command = [self.ffmpeg_path, '-y', '-i', extension, '-b:a', bit_rate, mp3]
         else:
-            command = [self.ffmpeg_path, '-i', extension,  mp3]
+            command = [self.ffmpeg_path, '-y', '-i', extension,  mp3]
 
         self.run_ffmpeg(command=command)
 
@@ -963,7 +963,7 @@ class Gui(ListTabs):
         os.rename(video_path, f'{save_path}/add_subtitle.mp4')
         path_in_file = f'{save_path}/add_subtitle.mp4'
 
-        command = [self.ffmpeg_path, '-i', path_in_file, '-vf', f"subtitles='{srt_file_path}'", video_path]
+        command = [self.ffmpeg_path, '-y', '-i', path_in_file, '-vf', f"subtitles='{srt_file_path}'", video_path]
 
         try:
             self.run_ffmpeg(command=command)
