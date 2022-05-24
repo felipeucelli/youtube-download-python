@@ -773,6 +773,7 @@ class Gui(ListTabs):
         """
         self.block_interface()
         self.forget_frames_downloads()
+        self.download_tab.focus()
 
         if self.load_list_playlist_status:
             self.load_list_playlist_status = False
