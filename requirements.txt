@@ -1,3 +1,4 @@
 pytube
+pillow
 imageio_ffmpeg
 ffmpeg_progress_yield

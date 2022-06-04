@@ -10,7 +10,10 @@ import sys
 import time
 import math
 import tkinter
+from io import BytesIO
 from html import unescape
+from PIL import Image, ImageTk
+from urllib.request import urlopen
 from _thread import start_new_thread
 import xml.etree.ElementTree as ElementTree
 from tkinter import ttk, filedialog, messagebox, TclError
@@ -135,6 +138,8 @@ class Gui(ListTabs):
         self.video_extension = ''
         self.audio_extension = ''
         self.progressive = True
+        self.stop_search = False
+        self.search_ok = False
         self.stop_download_status = False
         self.search_entry_status = False
         self.loading_link_verify_status = False
@@ -144,6 +149,7 @@ class Gui(ListTabs):
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
         self.select_file_playlist = tkinter.StringVar()
+        self.search_count = 0
         self.files_count_tree_view = 1
         self.files_count_ok = 0
         self.search_link_list = []
@@ -203,19 +209,21 @@ class Gui(ListTabs):
         self.message_youtube_title = tkinter.Message(self.frame_link, font='Arial 10', width=450)
         self.message_youtube_title.grid(row=1, columnspan=2)
 
-        self.frame_list_search_entry = tkinter.Frame(self.download_tab)
-        self.scrollbar_y_search_entry = tkinter.Scrollbar(self.frame_list_search_entry, orient='vertical')
-        self.scrollbar_y_search_entry.pack(side='right', fill='y')
-        self.scrollbar_x_search_entry = tkinter.Scrollbar(self.frame_list_search_entry, orient='horizontal')
-        self.scrollbar_x_search_entry.pack(side="bottom", fill="x")
-        self.list_box_search_entry = tkinter.Listbox(self.frame_list_search_entry, width=87, height=19, borderwidth=0,
-                                                     highlightthickness=0, activestyle='none',
-                                                     yscrollcommand=self.scrollbar_y_search_entry.set,
-                                                     xscrollcommand=self.scrollbar_x_search_entry.set)
-        self.list_box_search_entry.pack()
-        self.list_box_search_entry.bind('<Double-Button-1>', self.insert_entry_search)
-        self.scrollbar_y_search_entry.config(command=self.list_box_search_entry.yview)
-        self.scrollbar_x_search_entry.config(command=self.list_box_search_entry.xview)
+        # Keyword search frame
+        self.frame_search_keyword = tkinter.Frame(self.download_tab)
+        self.scrollbar_y_search_keyword = ttk.Scrollbar(self.frame_search_keyword, orient='vertical')
+        self.scrollbar_y_search_keyword.pack(fill='y', side='right', expand=False)
+        self.scrollbar_x_search_keyword = ttk.Scrollbar(self.frame_search_keyword, orient='horizontal')
+        self.scrollbar_x_search_keyword.pack(fill='x', side='bottom', expand=False)
+        self.canvas_search_keyword = tkinter.Canvas(self.frame_search_keyword,
+                                                    yscrollcommand=self.scrollbar_y_search_keyword.set,
+                                                    xscrollcommand=self.scrollbar_x_search_keyword.set,
+                                                    width=520, height=300)
+        self.canvas_search_keyword.pack(side='left', fill='both', expand=True)
+        self.scrollbar_y_search_keyword.config(command=self.canvas_search_keyword.yview)
+        self.scrollbar_x_search_keyword.config(command=self.canvas_search_keyword.xview)
+        self.interior = ttk.Frame(self.canvas_search_keyword, width=50)
+        self.canvas_search_keyword.create_window(0, 0, window=self.interior, anchor='nw')
 
         # Animation frame setup during link search
         self.frame_load_link = tkinter.Frame(self.download_tab)
@@ -494,47 +502,120 @@ class Gui(ListTabs):
                             save.writelines(f'Size: {tree_view_data[6]}\n')
                             save.writelines('------------------------------------------------------------\n')
 
-    def insert_entry_search(self, *args):
+    def search_keyword(self):
         """
-        Insert the link in the search entry of the selected title
-        :param args: None
+        Function responsible for searching and formatting the search data by keyword
         :return:
         """
-        _none = args
-        self.youtube_link_variable.set(self.search_link_list[self.list_box_search_entry.curselection()[0]])
-        self.list_box_search_entry.delete(0, 'end')
-        self.search_link_list.clear()
-        self.frame_list_search_entry.pack_forget()
 
-    def search_entry(self):
-        """
-        Perform a YouTube search using the keyword
-        :return:
-        """
-        pattern = r'(?:=|\/)([0-9A-Za-z_-]{11}).*'  # Just get the YouTube link
-        regex = re.compile(pattern)
+        self.block_interface()
 
-        self.list_box_search_entry.delete(0, 'end')
-        self.search_entry_status = True
+        # Destroy the items if the search has already ended
+        if self.search_ok:
+            self.frame_search_keyword.pack_forget()
+            for i in range(self.search_count):
+                globals()[f"label{i}"].destroy()
+                globals()[f"text{i}"].destroy()
+            self.search_count = 0
+            self.search_ok = False
 
-        self.frame_list_search_entry.pack()
+        # If there is, wait for the items to be removed before performing a new search
+        self.stop_search = True
+        if self.search_count > 0:
+            self.frame_search_keyword.pack_forget()
+            while self.search_count > 0:
+                time.sleep(1)
+        self.stop_search = False
+
+        class LabelID(tkinter.Label):
+            def __init__(self, master, url, image):
+                tkinter.Label.__init__(self, master=master, image=image)
+                self.url = url
+                self.bind('<Button-1>', lambda e: insert_entry_search(self.url))
+                self.bind('<Enter>', lambda e: self.enter_bg())
+                self.bind('<Leave>', lambda e: self.leave_bg())
+
+            def enter_bg(self):
+                self.config(bg='blue')
+
+            def leave_bg(self):
+                self.config(bg='white')
+
+        class MessageID(tkinter.Message):
+            def __init__(self, master, url,  text):
+                tkinter.Message.__init__(self, master=master, text=text, width=350)
+                self.url = url
+                self.bind('<Button-1>', lambda e: insert_entry_search(self.url))
+                self.bind('<Enter>', lambda e: self.enter_fg())
+                self.bind('<Leave>', lambda e: self.leave_fg())
+
+            def enter_fg(self):
+                self.config(fg='blue')
+
+            def leave_fg(self):
+                self.config(fg='black')
+
+        def insert_entry_search(*args):
+            """
+            Insert the link in the search entry of the selected title
+            :param args: None
+            :return:
+            """
+            if not self.stop_search:
+                self.youtube_link_variable.set(args[0])
+            self.frame_search_keyword.pack_forget()
+            self.stop_search = True
+
+        def _configure_scroll():
+            """
+            Configure the scrollbar whenever a new item is added
+            :return:
+            """
+            self.canvas_search_keyword.config(scrollregion=self.canvas_search_keyword.bbox('all'))
+
+        self.interior.bind('<Configure>', lambda e: _configure_scroll())
+
+        self.search_count = 0
+        raw_yt = Search(self.youtube_link_variable.get())
+        os.system('cls' if os.name == 'nt' else 'clear')
 
         try:
-            self.block_interface()
-            yt = Search(self.youtube_link_variable.get())
+            for yt in raw_yt.results:
+                request_url = urlopen(yt.thumbnail_url)
+                raw_data = request_url.read()
+                request_url.close()
 
-            for c in yt.results:
-                self.list_box_search_entry.insert('end', c.title)  # Insert the titles in the listbox
+                im = Image.open(BytesIO(raw_data))
+                photo = ImageTk.PhotoImage(im.resize((150, 100)))
 
-                # Insert title links into a list
-                self.search_link_list.append(f'https://youtube.com/watch?v={regex.findall(str(c))[0]}')
+                if self.search_count == 0:
+                    self.loading_link_verify_status = False
+                    self.frame_search_keyword.pack()
+                    self.unblock_interface()
 
-            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console if pytube returns a match alert
-            self.unblock_interface()
+                globals()[f"label{self.search_count}"] = LabelID(self.interior, yt.watch_url, image=photo)
+                globals()[f"label{self.search_count}"].image = photo
+                globals()[f"label{self.search_count}"].grid(column=0, row=self.search_count)
+                text_label = f'{yt.title}\n\n{time.strftime("%H:%M:%S", time.gmtime(yt.length))}'
+
+                globals()[f"text{self.search_count}"] = MessageID(self.interior, yt.watch_url, text=text_label)
+                globals()[f"text{self.search_count}"].grid(column=1, row=self.search_count, sticky='w')
+
+                self.search_count = self.search_count + 1
+
+                # Remove the items and stop the search
+                if self.stop_search:
+                    self.frame_search_keyword.pack_forget()
+                    for i in range(0, self.search_count):
+                        globals()[f"label{i}"].destroy()
+                        globals()[f"text{i}"].destroy()
+                    self.search_count = 0
+                    break
+            else:
+                self.search_ok = True
         except Exception as error:
-            messagebox.showerror('Error', f'Pytube: {str(error)}')
-            self.unblock_interface()
-            self.reset_interface()
+            messagebox.showerror('Error', str(error))
+            self.restart()
 
     def _thread_loading_link_verify(self, *args):
         """
@@ -598,9 +679,7 @@ class Gui(ListTabs):
                     self.youtube_type = 'single_file'
             except exceptions.RegexMatchError as error:
                 if 'regex_search' in str(error):
-                    self.loading_link_verify_status = False
-                    self.unblock_interface()
-                    self.search_entry()
+                    self.search_keyword()
                 else:
                     self.unblock_interface()
                     self.reset_interface()
@@ -670,7 +749,7 @@ class Gui(ListTabs):
             self.load_list_playlist_status = False
             self.close_list_playlist()
         if self.search_entry_status:
-            self.frame_list_search_entry.pack_forget()
+            self.frame_search_keyword.pack_forget()
 
     def return_page(self):
         """
@@ -740,7 +819,7 @@ class Gui(ListTabs):
             bit_rate = self.combo_quality_audio.get().split('b')[0]
             command = [self.ffmpeg_path, '-y', '-i', extension, '-b:a', bit_rate, mp3]
         else:
-            command = [self.ffmpeg_path, '-y', '-i', extension,  mp3]
+            command = [self.ffmpeg_path, '-y', '-i', extension, mp3]
 
         self.run_ffmpeg(command=command)
 
