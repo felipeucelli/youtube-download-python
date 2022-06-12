@@ -12,12 +12,12 @@ import math
 import tkinter
 from io import BytesIO
 from html import unescape
-from PIL import Image, ImageTk
 from urllib.request import urlopen
 from _thread import start_new_thread
 import xml.etree.ElementTree as ElementTree
 from tkinter import ttk, filedialog, messagebox, TclError
 
+from PIL import Image, ImageTk
 from imageio_ffmpeg import get_ffmpeg_exe
 from ffmpeg_progress_yield import FfmpegProgress
 from pytube import YouTube, Playlist, Search, exceptions
@@ -153,6 +153,8 @@ class Gui(ListTabs):
         self.files_count_tree_view = 1
         self.files_count_ok = 0
         self.search_link_list = []
+        self.search_label_variable = []
+        self.search_text_variable = []
 
         self.tabs = ttk.Notebook(self.root)
         self.download_tab = tkinter.Frame(self.tabs, highlightthickness=0)
@@ -513,9 +515,11 @@ class Gui(ListTabs):
         # Destroy the items if the search has already ended
         if self.search_ok:
             self.frame_search_keyword.pack_forget()
-            for i in range(self.search_count):
-                globals()[f"label{i}"].destroy()
-                globals()[f"text{i}"].destroy()
+            for i in range(0, self.search_count):
+                self.search_label_variable[i].destroy()
+                self.search_text_variable[i].destroy()
+            self.search_label_variable.clear()
+            self.search_text_variable.clear()
             self.search_count = 0
             self.search_ok = False
 
@@ -575,11 +579,11 @@ class Gui(ListTabs):
 
         self.interior.bind('<Configure>', lambda e: _configure_scroll())
 
-        self.search_count = 0
-        raw_yt = Search(self.youtube_link_variable.get())
-        os.system('cls' if os.name == 'nt' else 'clear')
-
         try:
+            self.search_count = 0
+            raw_yt = Search(self.youtube_link_variable.get())
+            os.system('cls' if os.name == 'nt' else 'clear')
+
             for yt in raw_yt.results:
                 request_url = urlopen(yt.thumbnail_url)
                 raw_data = request_url.read()
@@ -593,13 +597,13 @@ class Gui(ListTabs):
                     self.frame_search_keyword.pack()
                     self.unblock_interface()
 
-                globals()[f"label{self.search_count}"] = LabelID(self.interior, yt.watch_url, image=photo)
-                globals()[f"label{self.search_count}"].image = photo
-                globals()[f"label{self.search_count}"].grid(column=0, row=self.search_count)
+                self.search_label_variable.append(LabelID(self.interior, yt.watch_url, image=photo))
+                self.search_label_variable[self.search_count].image = photo
+                self.search_label_variable[self.search_count].grid(column=0, row=self.search_count)
                 text_label = f'{yt.title}\n\n{time.strftime("%H:%M:%S", time.gmtime(yt.length))}'
 
-                globals()[f"text{self.search_count}"] = MessageID(self.interior, yt.watch_url, text=text_label)
-                globals()[f"text{self.search_count}"].grid(column=1, row=self.search_count, sticky='w')
+                self.search_text_variable.append(MessageID(self.interior, yt.watch_url, text=text_label))
+                self.search_text_variable[self.search_count].grid(column=1, row=self.search_count, sticky='w')
 
                 self.search_count = self.search_count + 1
 
@@ -607,8 +611,10 @@ class Gui(ListTabs):
                 if self.stop_search:
                     self.frame_search_keyword.pack_forget()
                     for i in range(0, self.search_count):
-                        globals()[f"label{i}"].destroy()
-                        globals()[f"text{i}"].destroy()
+                        self.search_label_variable[i].destroy()
+                        self.search_text_variable[i].destroy()
+                    self.search_label_variable.clear()
+                    self.search_text_variable.clear()
                     self.search_count = 0
                     break
             else:
@@ -671,23 +677,19 @@ class Gui(ListTabs):
                     stream = self.youtube.streams
                     self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                     self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
-                    self.combo_subtitle['values'] = self.get_subtitle_code()
+                    self.combo_subtitle['values'] = self.get_subtitle_code(self.youtube.caption_tracks)
                     self.stream_video = stream.filter()
                     self.stream_audio = stream.filter(only_audio=True)
                     title = f'Type: Single File\n' \
                             f'Title: {self.youtube.title}'
                     self.youtube_type = 'single_file'
-            except exceptions.RegexMatchError as error:
+            except Exception as error:
                 if 'regex_search' in str(error):
                     self.search_keyword()
                 else:
                     self.unblock_interface()
                     self.reset_interface()
                     messagebox.showerror('Error', f'Pytube: {str(error)}')
-            except Exception as error:
-                self.unblock_interface()
-                self.reset_interface()
-                messagebox.showerror('Error', f'Pytube: {str(error)}')
             else:
                 self.search_entry_status = False
                 self.loading_link_verify_status = False
@@ -943,26 +945,27 @@ class Gui(ListTabs):
         return path
 
     @staticmethod
-    def float_to_srt_time_format(d: float) -> str:  # pytube function
-        """Convert decimal durations into proper srt format.
-
-        :rtype: str
-        :returns:
-            SubRip Subtitle (str) formatted time duration.
-
-        float_to_srt_time_format(3.89) -> '00:00:03,890'
-        """
-        fraction, whole = math.modf(d)
-        time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
-        ms = f"{fraction:.3f}".replace("0.", "")
-        return time_fmt + ms
-
-    def xml_caption_to_srt(self, xml_captions: str) -> str:  # pytube function
+    def xml_caption_to_srt(xml_captions: str) -> str:  # pytube function
         """Convert xml caption tracks to "SubRip Subtitle (srt)".
 
         :param str xml_captions:
         XML formatted caption tracks.
         """
+
+        def float_to_srt_time_format(d: float) -> str:  # pytube function
+            """Convert decimal durations into proper srt format.
+
+            :rtype: str
+            :returns:
+                SubRip Subtitle (str) formatted time duration.
+
+            float_to_srt_time_format(3.89) -> '00:00:03,890'
+            """
+            fraction, whole = math.modf(d)
+            time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
+            ms = f"{fraction:.3f}".replace("0.", "")
+            return time_fmt + ms
+
         segments = []
         root = ElementTree.fromstring(xml_captions)
         i = 0
@@ -985,22 +988,23 @@ class Gui(ListTabs):
                 sequence_number = i + 1  # convert from 0-indexed to 1.
                 line = "{seq}\n{start} --> {end}\n{text}\n".format(
                     seq=sequence_number,
-                    start=self.float_to_srt_time_format(start),
-                    end=self.float_to_srt_time_format(end),
+                    start=float_to_srt_time_format(start),
+                    end=float_to_srt_time_format(end),
                     text=caption,
                 )
                 segments.append(line)
                 i += 1
         return "\n".join(segments).strip()
 
-    def get_subtitle_code(self) -> list:
+    @staticmethod
+    def get_subtitle_code(caption_tracks) -> list:
         """
         Get the subtitle code and return it in a list
         :return: Returns a list of available subtitle codes
         """
         pattern = r'code=\"[a-zA-Z]+(?:-[a-zA-Z]+)?\"'  # Get the subtitle codes, example output: code="en"
         regex = re.compile(pattern)
-        raw_caption_code = regex.findall(str(self.youtube.caption_tracks))
+        raw_caption_code = regex.findall(str(caption_tracks))
 
         caption_code = ['NONE']
         for c in raw_caption_code:
