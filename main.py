@@ -154,6 +154,7 @@ class Gui(ListTabs):
         self.files_count_ok = 0
         self.search_link_list = []
         self.search_label_variable = []
+        self.search_time_variable = []
         self.search_text_variable = []
 
         self.tabs = ttk.Notebook(self.root)
@@ -517,8 +518,10 @@ class Gui(ListTabs):
             self.frame_search_keyword.pack_forget()
             for i in range(0, self.search_count):
                 self.search_label_variable[i].destroy()
+                self.search_time_variable[i].destroy()
                 self.search_text_variable[i].destroy()
             self.search_label_variable.clear()
+            self.search_time_variable.clear()
             self.search_text_variable.clear()
             self.search_count = 0
             self.search_ok = False
@@ -532,12 +535,15 @@ class Gui(ListTabs):
         self.stop_search = False
 
         class LabelID(tkinter.Label):
-            def __init__(self, master, url, image):
-                tkinter.Label.__init__(self, master=master, image=image)
+            def __init__(self, master, url, image=None, text=None):
+                super().__init__(master=master, image=image, text=text)
                 self.url = url
                 self.bind('<Button-1>', lambda e: insert_entry_search(self.url))
-                self.bind('<Enter>', lambda e: self.enter_bg())
-                self.bind('<Leave>', lambda e: self.leave_bg())
+                if image:
+                    self.bind('<Enter>', lambda e: self.enter_bg())
+                    self.bind('<Leave>', lambda e: self.leave_bg())
+                if text:
+                    self.config(bg='black', fg='white', font='Arial 8')
 
             def enter_bg(self):
                 self.config(bg='blue')
@@ -547,7 +553,7 @@ class Gui(ListTabs):
 
         class MessageID(tkinter.Message):
             def __init__(self, master, url,  text):
-                tkinter.Message.__init__(self, master=master, text=text, width=350)
+                super().__init__(master=master, text=text, width=350, font='Arial 10')
                 self.url = url
                 self.bind('<Button-1>', lambda e: insert_entry_search(self.url))
                 self.bind('<Enter>', lambda e: self.enter_fg())
@@ -600,8 +606,14 @@ class Gui(ListTabs):
                 self.search_label_variable.append(LabelID(self.interior, yt.watch_url, image=photo))
                 self.search_label_variable[self.search_count].image = photo
                 self.search_label_variable[self.search_count].grid(column=0, row=self.search_count)
-                text_label = f'{yt.title}\n\n{time.strftime("%H:%M:%S", time.gmtime(yt.length))}'
 
+                text_time = str(time.strftime("%H:%M:%S", time.gmtime(yt.length)))
+                self.search_time_variable.append(LabelID(self.interior, url=yt.watch_url, text=text_time))
+                self.search_time_variable[self.search_count].grid(column=0, row=self.search_count, sticky='es',
+                                                                  pady=3, padx=2)
+
+                text_label = f'{yt.title}\n\n' \
+                             f'{yt.author}'
                 self.search_text_variable.append(MessageID(self.interior, yt.watch_url, text=text_label))
                 self.search_text_variable[self.search_count].grid(column=1, row=self.search_count, sticky='w')
 
@@ -612,8 +624,10 @@ class Gui(ListTabs):
                     self.frame_search_keyword.pack_forget()
                     for i in range(0, self.search_count):
                         self.search_label_variable[i].destroy()
+                        self.search_time_variable[i].destroy()
                         self.search_text_variable[i].destroy()
                     self.search_label_variable.clear()
+                    self.search_time_variable.clear()
                     self.search_text_variable.clear()
                     self.search_count = 0
                     break
