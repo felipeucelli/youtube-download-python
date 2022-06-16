@@ -459,27 +459,30 @@ class Gui(ListTabs):
         Add variable content to clipboard
         :return:
         """
-        if self.youtube_link_variable.get() != 'Type here a youtube link':
-            self.root.clipboard_append(self.youtube_link_variable.get())
+        if str(self.entry_youtube_link['state']) == 'normal':
+            if self.youtube_link_variable.get() != 'Type here a youtube link':
+                self.root.clipboard_append(self.youtube_link_variable.get())
 
     def _paste_youtube_link(self):
         """
         Set the clipboard content in the variable
         :return:
         """
-        try:
-            self.focus_in(self.entry_youtube_link, 'Type here a youtube link')
-            self.youtube_link_variable.set(self.root.clipboard_get())
-        except TclError:
-            pass
+        if str(self.entry_youtube_link['state']) == 'normal':
+            try:
+                self.focus_in(self.entry_youtube_link, 'Type here a youtube link')
+                self.youtube_link_variable.set(self.root.clipboard_get())
+            except TclError:
+                pass
 
     def _clear_youtube_link(self):
         """
         Clear the variable
         :return:
         """
-        self.youtube_link_variable.set('')
-        self.focus_out(self.entry_youtube_link, 'Type here a youtube link')
+        if str(self.entry_youtube_link['state']) == 'normal':
+            self.youtube_link_variable.set('')
+            self.focus_out(self.entry_youtube_link, 'Type here a youtube link')
 
     def export_list(self):
         """
@@ -505,14 +508,11 @@ class Gui(ListTabs):
                             save.writelines(f'Size: {tree_view_data[6]}\n')
                             save.writelines('------------------------------------------------------------\n')
 
-    def search_keyword(self):
+    def reset_search_keyword(self):
         """
-        Function responsible for searching and formatting the search data by keyword
+        Function responsible for removing items from the keyword search
         :return:
         """
-
-        self.block_interface()
-
         # Destroy the items if the search has already ended
         if self.search_ok:
             self.frame_search_keyword.pack_forget()
@@ -534,6 +534,11 @@ class Gui(ListTabs):
                 time.sleep(1)
         self.stop_search = False
 
+    def search_keyword(self):
+        """
+        Function responsible for searching and formatting the search data by keyword
+        :return:
+        """
         class LabelID(tkinter.Label):
             def __init__(self, master, url, image=None, text=None):
                 super().__init__(master=master, image=image, text=text)
@@ -678,6 +683,7 @@ class Gui(ListTabs):
             self.frame_load_link.pack(pady=100)
             start_new_thread(self._thread_loading_link_verify, (None, None))
             self.block_interface()
+            self.reset_search_keyword()
             try:
                 try:
                     self.playlist = Playlist(self.youtube_link_variable.get())
