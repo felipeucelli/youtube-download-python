@@ -20,7 +20,7 @@ from tkinter import ttk, filedialog, messagebox, TclError
 from PIL import Image, ImageTk
 from imageio_ffmpeg import get_ffmpeg_exe
 from ffmpeg_progress_yield import FfmpegProgress
-from pytube import YouTube, Playlist, Search, exceptions, Stream, StreamQuery
+from pytube import YouTube, Playlist, Channel, Search, exceptions, Stream, StreamQuery
 
 
 class ListTabs:
@@ -143,12 +143,12 @@ class Gui(ListTabs):
         self.stop_download_status = False
         self.search_entry_status = False
         self.loading_link_verify_status = False
-        self.load_list_playlist_status = False
+        self.load_list_container_status = False
         self.mouse_on_youtube_entry_status = False
         self.loading_link_verify_status = False
         self.youtube_link_variable = tkinter.StringVar()
         self.search_list_variable = tkinter.StringVar()
-        self.select_file_playlist = tkinter.StringVar()
+        self.select_file_container = tkinter.StringVar()
         self.search_count = 0
         self.files_count_tree_view = 1
         self.files_count_ok = 0
@@ -184,7 +184,7 @@ class Gui(ListTabs):
         self.search_list_entry = ttk.Entry(self.list_tab, font='Arial 15', textvariable=self.search_list_variable)
         self.search_list_entry.pack(fill='x')
         self.search_list_variable.trace('w', self.search_list)
-        self.select_file_playlist.trace('w', self._validation_select_file_playlist)
+        self.select_file_container.trace('w', self._validation_select_file_container)
 
     def _download_tab(self):
         """
@@ -273,48 +273,48 @@ class Gui(ListTabs):
         self.btn_video_download.bind('<Return>', lambda event: self.download_file())
         self.btn_video_download.pack(pady=15)
 
-        # frame setting for selecting video playlist file download quality
-        self.frame_video_playlist_download = tkinter.Frame(self.download_tab)
-        self.label_select_video_playlist = tkinter.Label(self.frame_video_playlist_download,
-                                                         font='Arial 15', text='Choose Videos:')
-        self.label_select_video_playlist.grid(row=0, column=0, sticky='nw', padx=1, pady=1)
-        self.entry_select_video_playlist = ttk.Entry(self.frame_video_playlist_download, font=('Arial', 15),
-                                                     textvariable=self.select_file_playlist, width=19)
-        self.entry_select_video_playlist.grid(row=0, column=1)
-        self.btn_load_video_list = ttk.Button(self.frame_video_playlist_download,
+        # frame setting for selecting video container file download quality
+        self.frame_video_container_download = tkinter.Frame(self.download_tab)
+        self.label_select_video_container = tkinter.Label(self.frame_video_container_download,
+                                                          font='Arial 15', text='Choose Videos:')
+        self.label_select_video_container.grid(row=0, column=0, sticky='nw', padx=1, pady=1)
+        self.entry_select_video_container = ttk.Entry(self.frame_video_container_download, font=('Arial', 15),
+                                                      textvariable=self.select_file_container, width=19)
+        self.entry_select_video_container.grid(row=0, column=1)
+        self.btn_load_video_list = ttk.Button(self.frame_video_container_download,
                                               text='Load List', command=self._load_list_playlist)
         self.btn_load_video_list.bind('<Return>', lambda event: self._load_list_playlist())
         self.btn_load_video_list.grid(row=1, column=0, sticky='sw', padx=1, pady=1)
-        self.btn_highest_resolution = ttk.Button(self.frame_video_playlist_download, text='Highest Resolution',
+        self.btn_highest_resolution = ttk.Button(self.frame_video_container_download, text='Highest Resolution',
                                                  command=lambda: self.download_file('highest_resolution'))
         self.btn_highest_resolution.bind('<Return>', lambda event: self.download_file('highest_resolution'))
         self.btn_highest_resolution.grid(row=0, column=2, padx=5)
-        self.btn_lowest_resolution = ttk.Button(self.frame_video_playlist_download, text='Lowest Resolution',
+        self.btn_lowest_resolution = ttk.Button(self.frame_video_container_download, text='Lowest Resolution',
                                                 command=lambda: self.download_file('lowest_resolution'))
         self.btn_lowest_resolution.bind('<Return>', lambda event: self.download_file('lowest_resolution'))
         self.btn_lowest_resolution.grid(row=1, column=2, padx=5)
 
-        # frame setting for selecting audio playlist file download
-        self.frame_audio_playlist_download = tkinter.Frame(self.download_tab)
-        self.label_select_audio_playlist = tkinter.Label(self.frame_audio_playlist_download,
-                                                         font='Arial 15', text='Choose Audios:')
-        self.label_select_audio_playlist.grid(row=0, column=0, sticky='nw', padx=1, pady=1)
-        self.entry_select_audio_playlist = ttk.Entry(self.frame_audio_playlist_download, font=('Arial', 15),
-                                                     textvariable=self.select_file_playlist, width=20)
-        self.entry_select_audio_playlist.grid(row=0, column=1, sticky='n')
-        self.btn_load_audio_list = ttk.Button(self.frame_audio_playlist_download,
+        # frame setting for selecting audio container file download
+        self.frame_audio_container_download = tkinter.Frame(self.download_tab)
+        self.label_select_audio_container = tkinter.Label(self.frame_audio_container_download,
+                                                          font='Arial 15', text='Choose Audios:')
+        self.label_select_audio_container.grid(row=0, column=0, sticky='nw', padx=1, pady=1)
+        self.entry_select_audio_container = ttk.Entry(self.frame_audio_container_download, font=('Arial', 15),
+                                                      textvariable=self.select_file_container, width=20)
+        self.entry_select_audio_container.grid(row=0, column=1, sticky='n')
+        self.btn_load_audio_list = ttk.Button(self.frame_audio_container_download,
                                               text='Load List', command=self._load_list_playlist)
         self.btn_load_audio_list.bind('<Return>', lambda event: self._load_list_playlist())
         self.btn_load_audio_list.grid(row=1, column=0, sticky='sw', padx=1, pady=1)
-        self.btn_audio_file = ttk.Button(self.frame_audio_playlist_download,
+        self.btn_audio_file = ttk.Button(self.frame_audio_container_download,
                                          text='    Download    ', command=self.download_file)
         self.btn_audio_file.bind('<Return>', lambda event: self.download_file())
         self.btn_audio_file.grid(row=0, column=2, padx=5)
 
         # Download Status frame Setting
         self.frame_download_status = tkinter.Frame(self.download_tab)
-        self.label_count_playlist = tkinter.Label(self.frame_download_status, font='Arial 15', fg='green')
-        self.label_count_playlist.pack(pady=5)
+        self.label_count_container = tkinter.Label(self.frame_download_status, font='Arial 15', fg='green')
+        self.label_count_container.pack(pady=5)
         self.label_download_name_file = tkinter.Message(self.frame_download_status,
                                                         font='Arial 10', fg='green', width=400)
         self.label_download_name_file.pack(pady=25)
@@ -557,7 +557,7 @@ class Gui(ListTabs):
                 self.config(bg='white')
 
         class MessageID(tkinter.Message):
-            def __init__(self, master, url,  text):
+            def __init__(self, master, url, text):
                 super().__init__(master=master, text=text, width=350, font='Arial 10')
                 self.url = url
                 self.bind('<Button-1>', lambda e: insert_entry_search(self.url))
@@ -672,7 +672,7 @@ class Gui(ListTabs):
     def _thread_link_verify(self, *args):
         """
         Check the link provided
-        :return: returns the file type (audio, video) and whether it belongs to a playlist or not
+        :return: returns the file type (audio, video) and whether it belongs to a container or not
         """
         _none = args
         self.reset_interface()
@@ -686,23 +686,31 @@ class Gui(ListTabs):
             self.reset_search_keyword()
             try:
                 try:
-                    self.playlist = Playlist(self.youtube_link_variable.get())
-                    self.youtube_type = 'playlist'
-                    self.len_playlist_link = len(self.playlist)
+                    self.container = Playlist(self.youtube_link_variable.get())
+                    self.youtube_type = 'container'
+                    self.len_playlist_link = len(self.container)
                     title = f'Type: Playlist\n' \
                             f'Files: {self.len_playlist_link}\n' \
-                            f'Title: {self.playlist.title}'
+                            f'Title: {self.container.title}'
                 except KeyError:
-                    self.youtube = YouTube(self.youtube_link_variable.get())
-                    stream = self.youtube.streams
-                    self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
-                    self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
-                    self.combo_subtitle['values'] = self.get_subtitle_code(self.youtube.caption_tracks)
-                    self.stream_video = stream.filter()
-                    self.stream_audio = stream.filter(only_audio=True)
-                    title = f'Type: Single File\n' \
-                            f'Title: {self.youtube.title}'
-                    self.youtube_type = 'single_file'
+                    try:
+                        self.container = Channel(self.youtube_link_variable.get())
+                        self.youtube_type = 'container'
+                        self.len_playlist_link = len(self.container)
+                        title = f'Type: Channel\n' \
+                                f'Files: {self.len_playlist_link}\n' \
+                                f'Channel Name: {self.container.channel_name}'
+                    except exceptions.RegexMatchError:
+                        self.youtube = YouTube(self.youtube_link_variable.get())
+                        stream = self.youtube.streams
+                        self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
+                        self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
+                        self.combo_subtitle['values'] = self.get_subtitle_code(self.youtube.caption_tracks)
+                        self.stream_video = stream.filter()
+                        self.stream_audio = stream.filter(only_audio=True)
+                        title = f'Type: Single File\n' \
+                                f'Title: {self.youtube.title}'
+                        self.youtube_type = 'single_file'
             except Exception as error:
                 if 'regex_search' in str(error):
                     self.search_keyword()
@@ -762,13 +770,13 @@ class Gui(ListTabs):
         self.combo_quality_video.set('')
         self.combo_quality_audio.set('')
         self.combo_subtitle.set('')
-        self.select_file_playlist.set('')
+        self.select_file_container.set('')
         self.btn_return.configure(state=tkinter.DISABLED)
 
         if self.loading_link_verify_status:
             self.loading_link_verify_status = False
-        if self.load_list_playlist_status:
-            self.load_list_playlist_status = False
+        if self.load_list_container_status:
+            self.load_list_container_status = False
             self.close_list_playlist()
         if self.search_entry_status:
             self.frame_search_keyword.pack_forget()
@@ -788,12 +796,12 @@ class Gui(ListTabs):
         self.frame_file_type.pack(pady=50)
         self.btn_return.configure(state=tkinter.DISABLED)
 
-        if self.load_list_playlist_status:
-            self.load_list_playlist_status = False
+        if self.load_list_container_status:
+            self.load_list_container_status = False
             self.close_list_playlist()
 
         self.select_type = ''
-        self.select_file_playlist.set('')
+        self.select_file_container.set('')
 
     @staticmethod
     def focus_in(insertion, msg: str):
@@ -876,8 +884,8 @@ class Gui(ListTabs):
         self.forget_frames_downloads()
         self.download_tab.focus()
 
-        if self.load_list_playlist_status:
-            self.load_list_playlist_status = False
+        if self.load_list_container_status:
+            self.load_list_container_status = False
             self.close_list_playlist()
 
         self.frame_download_status.pack()
@@ -894,7 +902,7 @@ class Gui(ListTabs):
         self.unblock_interface()
         self.show_frame_selected_type(self.select_type)
 
-        self.label_count_playlist['text'] = ''
+        self.label_count_container['text'] = ''
         self.label_download_name_file['text'] = ''
         self.label_download_status['text'] = ''
         self.label_download_progress_bar_count['text'] = ''
@@ -908,7 +916,7 @@ class Gui(ListTabs):
             self.stop_download_status = False
             self.btn_force_stop.pack_forget()
 
-        self.select_file_playlist.set('')
+        self.select_file_container.set('')
 
     def modify_data_treeview(self, modification_type: str, status: str, quality: str, size='-', path='-') -> None:
         """
@@ -1079,10 +1087,10 @@ class Gui(ListTabs):
 
     def close_list_playlist(self):
         """
-        Function responsible for closing the playlist list
+        Function responsible for closing the container list
         :return:
         """
-        if not self.load_list_playlist_status and self.select_type != '' and self.youtube_type == 'playlist':
+        if not self.load_list_container_status and self.select_type != '' and self.youtube_type == 'container':
             if self.select_type == 'audio':
                 self.btn_load_audio_list['text'] = 'Load List'
             elif self.select_type == 'video':
@@ -1091,12 +1099,12 @@ class Gui(ListTabs):
 
     def _load_list_playlist(self):
         """
-        Function responsible for creating the playlist listbox
+        Function responsible for creating the container listbox
         :return:
         """
-        self.load_list_playlist_status = not self.load_list_playlist_status
+        self.load_list_container_status = not self.load_list_container_status
 
-        if self.load_list_playlist_status:
+        if self.load_list_container_status:
             if self.select_type == 'audio':
                 self.btn_load_audio_list['text'] = 'Close List'
             elif self.select_type == 'video':
@@ -1123,43 +1131,43 @@ class Gui(ListTabs):
 
             self.frame_list_playlist.pack()
 
-            start_new_thread(self._thread_load_list_playlist, (self.listbox_list_playlist, None))
-        elif not self.load_list_playlist_status:
+            start_new_thread(self._thread_load_list_container, (self.listbox_list_playlist, None))
+        elif not self.load_list_container_status:
             self.close_list_playlist()
 
-    def _thread_load_list_playlist(self, *args):
+    def _thread_load_list_container(self, *args):
         """
-        Insert the titles of the playlist links into the listbox "listbox_list_playlist" in a new thread
+        Insert the titles of the container links into the listbox "listbox_list_playlist" in a new thread
         :param args: args[0] == "listbox_list_playlist"
         :return:
         """
         listbox = args[0]
         i = 1
-        for url in self.playlist:
+        for url in self.container:
             title = YouTube(url).title
-            if self.load_list_playlist_status:
+            if self.load_list_container_status:
                 listbox.insert('end', f'{i} - {title}')
                 i += 1
             else:
                 break
 
-    def get_select_file_playlist(self) -> list:
+    def get_select_file_container(self) -> list:
         """
-        Function responsible for getting the links selected from the playlist
+        Function responsible for getting the links selected from the container
         :return: Returns a list of selected links
         """
-        get_data_files_select = self._validation_select_file_playlist()
+        get_data_files_select = self._validation_select_file_container()
         flag = get_data_files_select[0]
         data = get_data_files_select[1]
         if flag and data != []:
             playlist = []
-            yt = self.playlist
+            yt = self.container
             for j in data:
                 playlist.append(yt[int(j) - 1])
 
             return playlist
 
-    def _validation_select_file_playlist(self, *args) -> bool and list:
+    def _validation_select_file_container(self, *args):
         """
         Function responsible for verifying the chosen links
         :param args: None
@@ -1168,7 +1176,7 @@ class Gui(ListTabs):
 
         def _change_state(state, fg) -> None:
             """
-            Change the foreground and state of playlist download buttons
+            Change the foreground and state of container download buttons
             :param state: state of the button
             :param fg: entry foreground
             :return: None
@@ -1176,18 +1184,18 @@ class Gui(ListTabs):
             types = {
                 'video': lambda: (self.btn_highest_resolution.configure(state=state),
                                   self.btn_lowest_resolution.configure(state=state),
-                                  self.entry_select_video_playlist.configure(foreground=fg)),
+                                  self.entry_select_video_container.configure(foreground=fg)),
 
                 'audio': lambda: (self.btn_audio_file.configure(state=state),
-                                  self.entry_select_audio_playlist.configure(foreground=fg))
+                                  self.entry_select_audio_container.configure(foreground=fg))
             }
 
             return types[self.select_type]()
 
         _none = args
-        if self.select_file_playlist.get() != '':
+        if self.select_file_container.get() != '':
             flag = False
-            select = self.select_file_playlist.get().replace(' ', '')
+            select = self.select_file_container.get().replace(' ', '')
 
             # Validate entered characters
             pattern = r'^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$'
@@ -1258,7 +1266,7 @@ class Gui(ListTabs):
         """
         Call the pytube library and download the selected file
         :param save_path: Path to save the file
-        :param url: Contains playlist links
+        :param url: Contains container links
         :param quality: Selected file quality
         :return: Full path of downloaded file
         """
@@ -1269,7 +1277,7 @@ class Gui(ListTabs):
                     abr=str(self.combo_quality_audio.get()),
                     only_audio=True)[0].download(save_path)
 
-            elif self.youtube_type == 'playlist':
+            elif self.youtube_type == 'container':
                 youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                     .streams.get_audio_only().download(save_path)
 
@@ -1280,7 +1288,7 @@ class Gui(ListTabs):
                     res=str(self.combo_quality_video.get().split(' ')[0]),
                     progressive=self.progressive)[0].download(save_path)
 
-            elif self.youtube_type == 'playlist':
+            elif self.youtube_type == 'container':
                 if quality == 'lowest_resolution':
                     youtube = YouTube(url, on_progress_callback=self.progress_callback) \
                         .streams.get_lowest_resolution().download(save_path)
@@ -1296,7 +1304,7 @@ class Gui(ListTabs):
         Add the file details in the treeview and call the download function
         :param save_path: Path to save the file
         :param quality: Selected file quality
-        :param url: Contains playlist links
+        :param url: links
         :return: None
         """
         try:
@@ -1407,7 +1415,7 @@ class Gui(ListTabs):
 
     def _thread_download_file(self, *args):
         """
-        Download playlist audio files and videos
+        Download container audio files and videos
         :param args: args[0] == quality
         :return:
         """
@@ -1416,7 +1424,7 @@ class Gui(ListTabs):
         if save_path != '' and save_path != ():
             self.start_download()
 
-            # Check the file type (single_file or playlist) and download
+            # Check the file type (single_file or container) and download
             if self.youtube_type == 'single_file':
                 self.label_download_status['text'] = f'Downloading {self.select_type.title()}, Please Wait.'
                 self.set_progress_callback(percent='0')
@@ -1431,18 +1439,18 @@ class Gui(ListTabs):
 
                 self._download_handling(save_path=save_path, quality=quality)
 
-            elif self.youtube_type == 'playlist':
-                if self.select_file_playlist.get() == '':
-                    playlist = self.playlist
+            elif self.youtube_type == 'container':
+                if self.select_file_container.get() == '':
+                    container = self.container
                 else:
-                    playlist = self.get_select_file_playlist()
+                    container = self.get_select_file_container()
                 count = 0
                 self.video_extension = 'mp4'
                 self.audio_extension = 'mp4'
                 self.progressive = True
-                for url in playlist:
-                    self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
-                    self.label_download_status['text'] = f'Downloading {self.select_type} Playlist, Please Wait.'
+                for url in container:
+                    self.label_count_container['text'] = f'FILE: {str(count)}/{str(len(container))}'
+                    self.label_download_status['text'] = f'Downloading {self.select_type} Container, Please Wait.'
                     self.set_progress_callback(percent='0')
 
                     self._download_handling(save_path=save_path, quality=quality, url=url)
@@ -1450,7 +1458,7 @@ class Gui(ListTabs):
                     count += 1
                     if self.stop_download_status:
                         break
-                    self.label_count_playlist['text'] = f'FILE: {str(count)}/{str(len(playlist))}'
+                    self.label_count_container['text'] = f'FILE: {str(count)}/{str(len(container))}'
             self.download_finished()
 
     def download_file(self, quality=None) -> None:
@@ -1466,11 +1474,11 @@ class Gui(ListTabs):
             files_types = {
                 'video': {
                     'single_file': lambda: start_new_thread(self._thread_download_file, (None, None)),
-                    'playlist': lambda: start_new_thread(self._thread_download_file, (quality, None))
+                    'container': lambda: start_new_thread(self._thread_download_file, (quality, None))
                 },
                 'audio': {
                     'single_file': lambda: start_new_thread(self._thread_download_file, (None, None)),
-                    'playlist': lambda: start_new_thread(self._thread_download_file, ('highest_quality', None))
+                    'container': lambda: start_new_thread(self._thread_download_file, ('highest_quality', None))
                 }
             }
 
@@ -1484,11 +1492,11 @@ class Gui(ListTabs):
         files_types = {
             'video': {
                 'single_file': lambda: self.frame_video_download.pack_forget(),
-                'playlist': lambda: self.frame_video_playlist_download.pack_forget()
+                'container': lambda: self.frame_video_container_download.pack_forget()
             },
             'audio': {
                 'single_file': lambda: self.frame_audio_download.pack_forget(),
-                'playlist': lambda: self.frame_audio_playlist_download.pack_forget()
+                'container': lambda: self.frame_audio_container_download.pack_forget()
             }
         }
 
@@ -1503,13 +1511,13 @@ class Gui(ListTabs):
         files_types = {
             'video': {
                 'single_file': lambda: self.frame_video_download.pack(pady=50),
-                'playlist': lambda: (self.frame_video_playlist_download.pack(fill='both'),
-                                     self._validation_select_file_playlist())
+                'container': lambda: (self.frame_video_container_download.pack(fill='both'),
+                                      self._validation_select_file_container())
             },
             'audio': {
                 'single_file': lambda: self.frame_audio_download.pack(pady=50),
-                'playlist': lambda: (self.frame_audio_playlist_download.pack(fill='both'),
-                                     self._validation_select_file_playlist())
+                'container': lambda: (self.frame_audio_container_download.pack(fill='both'),
+                                      self._validation_select_file_container())
             }
         }
 
