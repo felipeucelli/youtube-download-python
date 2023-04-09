@@ -4,3 +4,5 @@ venv/
 *.mp3
 *.mp4
 *.srt
+*.webm
+*.ogg
