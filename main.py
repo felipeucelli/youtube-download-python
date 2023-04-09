@@ -1309,9 +1309,12 @@ class Gui(ListTabs):
         """
         try:
             youtube = YouTube(url) if url else self.youtube
-            self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
-            self.label_download_name_file['text'] = youtube.title
             self.modify_data_treeview(modification_type='insert', status='DOWNLOADING', quality=quality, path=save_path)
+            try:
+                self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
+            except TypeError:
+                self.duration = '-'
+            self.label_download_name_file['text'] = youtube.title
 
             youtube = self._download_youtube_file(save_path=save_path, url=url, quality=quality)
 
