@@ -35,7 +35,7 @@ This program uses the [Pytube](https://github.com/pytube/pytube) library to sear
 
 ## Prerequisites
 * [Python3](https://www.python.org)
-* [Pytube](https://pytube.io/en/latest/)
+* [Pytubefix](https://github.com/JuanBindez/pytubefix)
 * [Pillow](https://pillow.readthedocs.io/en/stable/)
 * [Imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg)
 * [ffmpeg_progress_yield](https://github.com/slhck/ffmpeg-progress-yield)
