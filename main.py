@@ -8,13 +8,10 @@ import os
 import re
 import sys
 import time
-import math
 import tkinter
 from io import BytesIO
-from html import unescape
 from urllib.request import urlopen
 from _thread import start_new_thread
-import xml.etree.ElementTree as ElementTree
 from tkinter import ttk, filedialog, messagebox, TclError
 
 from PIL import Image, ImageTk
@@ -156,6 +153,14 @@ class Gui(ListTabs):
         self.search_label_variable = []
         self.search_time_variable = []
         self.search_text_variable = []
+
+        self.clients_list = [
+            'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_CREATOR',
+            'ANDROID', 'ANDROID_EMBED', 'ANDROID_MUSIC', 'ANDROID_CREATOR',
+            'IOS', 'IOS_EMBED', 'IOS_MUSIC', 'IOS_CREATOR',
+            'ANDROID_TESTSUITE', 'MWEB', 'TV_EMBED'
+        ]
+        self.clients_selected = 'ANDROID_TESTSUITE'
 
         self.tabs = ttk.Notebook(self.root)
         self.download_tab = tkinter.Frame(self.tabs, highlightthickness=0)
@@ -418,9 +423,24 @@ class Gui(ListTabs):
         self.option_menu = tkinter.Menu(self.new_menu, tearoff=0)
         self.new_menu.add_cascade(label='Options', menu=self.option_menu)
         self.option_menu.add_command(label='Export list', command=lambda: self.export_list())
+
+        self.option_clients = tkinter.Menu(self.option_menu, tearoff=0)
+        self.option_menu.add_cascade(label='Clients', menu=self.option_clients)
+
+        for client in self.clients_list:
+            self.option_clients.add_command(label=client, command=lambda c=client: self.change_client(c))
+
         self.option_menu.add_separator()
         self.option_menu.add_command(label='Exit', command=lambda: self.root.destroy())
         self.root.config(menu=self.new_menu)
+
+    def change_client(self, client_name):
+        """
+        Change client
+        :param client_name: selected client
+        :return:
+        """
+        self.clients_selected = client_name
 
     def _popup(self):
         """
@@ -593,9 +613,8 @@ class Gui(ListTabs):
         try:
             self.search_count = 0
             raw_yt = Search(self.youtube_link_variable.get())
-            os.system('cls' if os.name == 'nt' else 'clear')
 
-            for yt in raw_yt.results:
+            for yt in raw_yt.videos:
                 request_url = urlopen(yt.thumbnail_url)
                 raw_data = request_url.read()
                 request_url.close()
@@ -701,7 +720,7 @@ class Gui(ListTabs):
                                 f'Files: {self.len_playlist_link}\n' \
                                 f'Channel Name: {self.container.channel_name}'
                     except exceptions.RegexMatchError:
-                        self.youtube = YouTube(self.youtube_link_variable.get())
+                        self.youtube = YouTube(self.youtube_link_variable.get(), client=self.clients_selected)
                         stream = self.youtube.streams
                         self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                         self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
@@ -973,58 +992,6 @@ class Gui(ListTabs):
         return path
 
     @staticmethod
-    def xml_caption_to_srt(xml_captions: str) -> str:  # pytubefix function
-        """Convert xml caption tracks to "SubRip Subtitle (srt)".
-
-        :param str xml_captions:
-        XML formatted caption tracks.
-        """
-
-        def float_to_srt_time_format(d: float) -> str:  # pytubefix function
-            """Convert decimal durations into proper srt format.
-
-            :rtype: str
-            :returns:
-                SubRip Subtitle (str) formatted time duration.
-
-            float_to_srt_time_format(3.89) -> '00:00:03,890'
-            """
-            fraction, whole = math.modf(d)
-            time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
-            ms = f"{fraction:.3f}".replace("0.", "")
-            return time_fmt + ms
-
-        segments = []
-        root = ElementTree.fromstring(xml_captions)
-        i = 0
-        for child in list(root.iter("body"))[0]:
-            if child.tag == 'p':
-                caption = ''
-                if len(list(child)) == 0:
-                    # instead of 'continue'
-                    caption = child.text
-                for s in list(child):
-                    if s.tag == 's':
-                        caption += ' ' + s.text
-                caption = unescape(caption.replace("\n", " ").replace("  ", " "), )
-                try:
-                    duration = float(child.attrib["d"]) / 1000.0
-                except KeyError:
-                    duration = 0.0
-                start = float(child.attrib["t"]) / 1000.0
-                end = start + duration
-                sequence_number = i + 1  # convert from 0-indexed to 1.
-                line = "{seq}\n{start} --> {end}\n{text}\n".format(
-                    seq=sequence_number,
-                    start=float_to_srt_time_format(start),
-                    end=float_to_srt_time_format(end),
-                    text=caption,
-                )
-                segments.append(line)
-                i += 1
-        return "\n".join(segments).strip()
-
-    @staticmethod
     def get_subtitle_code(caption_tracks) -> list:
         """
         Get the subtitle code and return it in a list
@@ -1048,8 +1015,8 @@ class Gui(ListTabs):
         """
         selected_caption = self.youtube.captions[self.combo_subtitle.get()]
 
-        # Convert xml to srt using modified pytubefix function
-        srt = self.xml_caption_to_srt(selected_caption.xml_captions)
+        # Convert xml to srt
+        srt = selected_caption.generate_srt_captions()
 
         srt_file_path = f'{save_path}/subtitle.srt'
 
@@ -1144,7 +1111,7 @@ class Gui(ListTabs):
         listbox = args[0]
         i = 1
         for url in self.container:
-            title = YouTube(url).title
+            title = YouTube(url, client=self.clients_selected).title
             if self.load_list_container_status:
                 listbox.insert('end', f'{i} - {title}')
                 i += 1
@@ -1273,28 +1240,29 @@ class Gui(ListTabs):
         youtube = ''
         if self.select_type == 'audio':
             if self.youtube_type == 'single_file':
-                youtube = YouTube(self.link, on_progress_callback=self.progress_callback).streams.filter(
+                youtube = YouTube(self.link, client=self.clients_selected,
+                                  on_progress_callback=self.progress_callback).streams.filter(
                     abr=str(self.combo_quality_audio.get()),
                     only_audio=True)[0].download(save_path)
 
             elif self.youtube_type == 'container':
-                youtube = YouTube(url, on_progress_callback=self.progress_callback) \
+                youtube = YouTube(url, client=self.clients_selected, on_progress_callback=self.progress_callback) \
                     .streams.get_audio_only().download(save_path)
 
         elif self.select_type == 'video':
             if self.youtube_type == 'single_file':
-                youtube = YouTube(self.link, on_progress_callback=self.progress_callback) \
-                    .streams.filter(
+                youtube = YouTube(self.link, client=self.clients_selected,
+                                  on_progress_callback=self.progress_callback).streams.filter(
                     res=str(self.combo_quality_video.get().split(' ')[0]),
                     progressive=self.progressive)[0].download(save_path)
 
             elif self.youtube_type == 'container':
                 if quality == 'lowest_resolution':
-                    youtube = YouTube(url, on_progress_callback=self.progress_callback) \
+                    youtube = YouTube(url, client=self.clients_selected, on_progress_callback=self.progress_callback) \
                         .streams.get_lowest_resolution().download(save_path)
 
                 elif quality == 'highest_resolution':
-                    youtube = YouTube(url, on_progress_callback=self.progress_callback) \
+                    youtube = YouTube(url, client=self.clients_selected, on_progress_callback=self.progress_callback) \
                         .streams.get_highest_resolution().download(save_path)
 
         return youtube
@@ -1308,7 +1276,7 @@ class Gui(ListTabs):
         :return: None
         """
         try:
-            youtube = YouTube(url) if url else self.youtube
+            youtube = YouTube(url, client=self.clients_selected) if url else self.youtube
             try:
                 self.label_download_name_file['text'] = youtube.title
                 self.duration = time.strftime("%H:%M:%S", time.gmtime(youtube.length))
@@ -1367,7 +1335,7 @@ class Gui(ListTabs):
                                               quality=quality,
                                               path=save_path)
                     # Download audio track
-                    audio = YouTube(self.link, on_progress_callback=self.progress_callback) \
+                    audio = YouTube(self.link, client=self.clients_selected, on_progress_callback=self.progress_callback) \
                         .streams.get_audio_only().download(save_path, filename='audio.mp4')
 
                     self.modify_data_treeview(modification_type='edit', status='MERGING',
