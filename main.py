@@ -1037,7 +1037,7 @@ class Gui(ListTabs):
         srt_file_path = self.get_srt_file(save_path=save_path)
 
         if os.name == 'nt':
-            srt_file_path = srt_file_path.replace('C:', 'c\\:')
+            srt_file_path = srt_file_path.replace(':', '\\:')
 
         os.rename(video_path, f'{save_path}/add_subtitle.mp4')
         path_in_file = f'{save_path}/add_subtitle.mp4'
