@@ -156,9 +156,9 @@ class Gui(ListTabs):
 
         self.clients_list = [
             'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_CREATOR',
-            'ANDROID', 'ANDROID_EMBED', 'ANDROID_MUSIC', 'ANDROID_CREATOR',
+            'ANDROID', 'ANDROID_EMBED', 'ANDROID_MUSIC', 'ANDROID_CREATOR', 'ANDROID_TESTSUITE',
             'IOS', 'IOS_EMBED', 'IOS_MUSIC', 'IOS_CREATOR',
-            'ANDROID_TESTSUITE', 'MWEB', 'TV_EMBED'
+            'MWEB', 'TV_EMBED'
         ]
         self.clients_selected = 'ANDROID_TESTSUITE'
 
@@ -427,8 +427,16 @@ class Gui(ListTabs):
         self.option_clients = tkinter.Menu(self.option_menu, tearoff=0)
         self.option_menu.add_cascade(label='Clients', menu=self.option_clients)
 
-        for client in self.clients_list:
-            self.option_clients.add_command(label=client, command=lambda c=client: self.change_client(c))
+        # Generates a list for selecting available clients
+        selected_var = tkinter.IntVar()
+
+        for i, client in enumerate(self.clients_list):
+            self.option_clients.add_radiobutton(
+                label=client,
+                variable=selected_var,
+                value=i,
+                command=lambda c=client: self.change_client(c)
+            )
 
         self.option_menu.add_separator()
         self.option_menu.add_command(label='Exit', command=lambda: self.root.destroy())
