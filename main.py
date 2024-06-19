@@ -618,10 +618,8 @@ class Gui(ListTabs):
 
         self.interior.bind('<Configure>', lambda e: _configure_scroll())
 
-        def _load_playlist(pl):
-            request_url = urlopen(pl.sidebar_info[0]['playlistSidebarPrimaryInfoRenderer'][
-                                      'thumbnailRenderer']['playlistVideoThumbnailRenderer'][
-                                      'thumbnail']['thumbnails'][0]['url'])
+        def _make_thumbnail(thumbnail_image: str, url: str, title: str, length: str, owner: str):
+            request_url = urlopen(thumbnail_image)
             raw_data = request_url.read()
             request_url.close()
 
@@ -633,45 +631,18 @@ class Gui(ListTabs):
                 self.frame_search_keyword.pack()
                 self.unblock_interface()
 
-            self.search_label_variable.append(LabelID(self.interior, pl.playlist_url, image=photo))
+            self.search_label_variable.append(LabelID(self.interior, url, image=photo))
             self.search_label_variable[self.search_count].image = photo
             self.search_label_variable[self.search_count].grid(column=0, row=self.search_count)
 
-            text_time = str(f'# {pl.length} videos')
-            self.search_time_variable.append(LabelID(self.interior, url=pl.playlist_url, text=text_time))
+            text_time = str(length)
+            self.search_time_variable.append(LabelID(self.interior, url=url, text=text_time))
             self.search_time_variable[self.search_count].grid(column=0, row=self.search_count, sticky='es',
                                                               pady=3, padx=2)
 
-            text_label = f'{pl.title}\n\n' \
-                         f'{pl.owner}'
-            self.search_text_variable.append(MessageID(self.interior, pl.playlist_url, text=text_label))
-            self.search_text_variable[self.search_count].grid(column=1, row=self.search_count, sticky='w')
-
-        def _load_video(yt):
-            request_url = urlopen(yt.thumbnail_url)
-            raw_data = request_url.read()
-            request_url.close()
-
-            im = Image.open(BytesIO(raw_data))
-            photo = ImageTk.PhotoImage(im.resize((150, 100)))
-
-            if self.search_count == 0:
-                self.loading_link_verify_status = False
-                self.frame_search_keyword.pack()
-                self.unblock_interface()
-
-            self.search_label_variable.append(LabelID(self.interior, yt.watch_url, image=photo))
-            self.search_label_variable[self.search_count].image = photo
-            self.search_label_variable[self.search_count].grid(column=0, row=self.search_count)
-
-            text_time = str(time.strftime("%H:%M:%S", time.gmtime(yt.length)))
-            self.search_time_variable.append(LabelID(self.interior, url=yt.watch_url, text=text_time))
-            self.search_time_variable[self.search_count].grid(column=0, row=self.search_count, sticky='es',
-                                                              pady=3, padx=2)
-
-            text_label = f'{yt.title}\n\n' \
-                         f'{yt.author}'
-            self.search_text_variable.append(MessageID(self.interior, yt.watch_url, text=text_label))
+            text_label = f'{title}\n\n' \
+                         f'{owner}'
+            self.search_text_variable.append(MessageID(self.interior, url, text=text_label))
             self.search_text_variable[self.search_count].grid(column=1, row=self.search_count, sticky='w')
 
         try:
@@ -679,12 +650,34 @@ class Gui(ListTabs):
             raw_yt = Search(self.youtube_link_variable.get())
 
             for p in raw_yt.playlist:
-                _load_playlist(p)
+                try:
+                    image = p.sidebar_info[0]['playlistSidebarPrimaryInfoRenderer'][
+                                          'thumbnailRenderer']['playlistVideoThumbnailRenderer'][
+                                          'thumbnail']['thumbnails'][0]['url']
+                except KeyError:
+                    continue
+
+                _make_thumbnail(
+                    thumbnail_image=image,
+                    url=p.playlist_url,
+                    title=p.title,
+                    length=f'# {p.length} videos',
+                    owner=p.owner
+                )
 
                 self.search_count = self.search_count + 1
 
             for v in raw_yt.videos:
-                _load_video(v)
+                if v.length == 0:
+                    continue
+                    
+                _make_thumbnail(
+                    thumbnail_image=v.thumbnail_url,
+                    url=v.watch_url,
+                    title=v.title,
+                    length=str(time.strftime("%H:%M:%S", time.gmtime(v.length))),
+                    owner=v.author
+                )
 
                 self.search_count = self.search_count + 1
 
