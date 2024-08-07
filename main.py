@@ -155,10 +155,10 @@ class Gui(ListTabs):
         self.search_text_variable = []
 
         self.clients_list = [
-            'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_CREATOR',
-            'ANDROID', 'ANDROID_EMBED', 'ANDROID_MUSIC', 'ANDROID_CREATOR', 'ANDROID_TESTSUITE',
-            'IOS', 'IOS_EMBED', 'IOS_MUSIC', 'IOS_CREATOR',
-            'MWEB', 'TV_EMBED'
+            'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_CREATOR', 'WEB_SAFARI',
+            'ANDROID', 'ANDROID_MUSIC', 'ANDROID_CREATOR', 'ANDROID_TESTSUITE', 'ANDROID_VR', 'ANDROID_PRODUCER',
+            'IOS', 'IOS_MUSIC', 'IOS_CREATOR',
+            'MWEB', 'TV_EMBED', 'MEDIA_CONNECT'
         ]
         self.clients_selected = 'ANDROID_TESTSUITE'
 
