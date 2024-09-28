@@ -17,7 +17,7 @@ from tkinter import ttk, filedialog, messagebox, TclError
 from PIL import Image, ImageTk
 from imageio_ffmpeg import get_ffmpeg_exe
 from ffmpeg_progress_yield import FfmpegProgress
-from pytubefix import YouTube, Playlist, Channel, Search, exceptions, Stream, StreamQuery
+from pytubefix import YouTube, Playlist, Channel, Search, exceptions, Stream, StreamQuery, innertube
 
 
 class ListTabs:
@@ -160,7 +160,7 @@ class Gui(ListTabs):
             'IOS', 'IOS_MUSIC', 'IOS_CREATOR',
             'MWEB', 'TV_EMBED', 'MEDIA_CONNECT'
         ]
-        self.clients_selected = 'ANDROID_TESTSUITE'
+        self.clients_selected = innertube.InnerTube().client_name
 
         self.tabs = ttk.Notebook(self.root)
         self.download_tab = tkinter.Frame(self.tabs, highlightthickness=0)
