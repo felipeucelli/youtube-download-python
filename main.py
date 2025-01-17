@@ -762,7 +762,7 @@ class Gui(ListTabs):
                         stream = self.youtube.streams
                         self.combo_quality_video['values'] = self.get_quality(stream=stream, file_type='video')
                         self.combo_quality_audio['values'] = self.get_quality(stream=stream, file_type='audio')
-                        self.combo_subtitle['values'] = self.get_subtitle_code(self.youtube.caption_tracks)
+                        self.combo_subtitle['values'] = self.get_subtitle_code(self.youtube.captions)
                         self.stream_video = stream.filter()
                         self.stream_audio = stream.filter(only_audio=True)
                         title = f'Type: Single File\n' \
@@ -1035,7 +1035,7 @@ class Gui(ListTabs):
         Get the subtitle code and return it in a list
         :return: Returns a list of available subtitle codes
         """
-        pattern = r'code=\"[a-zA-Z]+(?:-[a-zA-Z]+)?\"'  # Get the subtitle codes, example output: code="en"
+        pattern = r'code=\"[a-zA-Z\.]+(?:-[a-zA-Z]+)?\"'  # Get the subtitle codes, example output: code="en"
         regex = re.compile(pattern)
         raw_caption_code = regex.findall(str(caption_tracks))
 
@@ -1574,7 +1574,7 @@ class Gui(ListTabs):
         """
 
         stream = self.get_stream_selected(stream=stream, selected=selected)
-
+        stream.default_filename
         return stream.subtype
 
     @staticmethod
