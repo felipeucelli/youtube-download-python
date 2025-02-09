@@ -9,6 +9,7 @@ import re
 import sys
 import time
 import tkinter
+import logging
 from io import BytesIO
 from urllib.request import urlopen
 from _thread import start_new_thread
@@ -19,7 +20,7 @@ from imageio_ffmpeg import get_ffmpeg_exe
 from ffmpeg_progress_yield import FfmpegProgress
 from pytubefix import YouTube, Playlist, Channel, Search, exceptions, Stream, StreamQuery, innertube
 
-
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 class ListTabs:
     def __init__(self, list_tab, root):
         self.list_tab = list_tab
@@ -155,10 +156,10 @@ class Gui(ListTabs):
         self.search_text_variable = []
 
         self.clients_list = [
-            'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_CREATOR', 'WEB_SAFARI',
-            'ANDROID', 'ANDROID_MUSIC', 'ANDROID_CREATOR', 'ANDROID_TESTSUITE', 'ANDROID_VR', 'ANDROID_PRODUCER',
-            'IOS', 'IOS_MUSIC', 'IOS_CREATOR',
-            'MWEB', 'TV_EMBED', 'MEDIA_CONNECT'
+            'WEB', 'WEB_EMBED', 'WEB_MUSIC', 'WEB_SAFARI', 'MWEB',
+            'ANDROID', 'ANDROID_VR',
+            'IOS',
+            'TV', 'TV_EMBED'
         ]
         self.clients_selected = innertube.InnerTube().client_name
 
@@ -439,6 +440,15 @@ class Gui(ListTabs):
             )
 
         self.option_menu.add_separator()
+        self.debug_var = tkinter.BooleanVar(value=False)
+
+        self.option_menu.add_checkbutton(
+            label="Show DEBUG Log",
+            variable=self.debug_var,
+            command=self.change_log_status
+        )
+
+        self.option_menu.add_separator()
         self.option_menu.add_command(label='Exit', command=lambda: self.root.destroy())
         self.root.config(menu=self.new_menu)
 
@@ -449,6 +459,16 @@ class Gui(ListTabs):
         :return:
         """
         self.clients_selected = client_name
+
+    def change_log_status(self):
+        """
+        Change log level
+        :return:
+        """
+
+        level = logging.DEBUG if self.debug_var.get() else logging.INFO
+        logging.getLogger().setLevel(level)
+
 
     def _popup(self):
         """
