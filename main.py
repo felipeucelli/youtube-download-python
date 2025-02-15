@@ -1481,7 +1481,7 @@ class Gui(ListTabs):
                     container = self.get_select_file_container()
                 count = 0
                 self.video_extension = 'mp4'
-                self.audio_extension = 'mp4'
+                self.audio_extension = 'm4a' # pytubefix bug
                 self.progressive = True
                 for url in container:
                     self.label_count_container['text'] = f'FILE: {str(count)}/{str(len(container))}'
